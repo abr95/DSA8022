@@ -1,0 +1,350 @@
+---
+title: 'DSA8022: Frontiers in Analytics - Examples'
+output:
+  pdf_document: 
+    fig_caption: yes
+  html_notebook: default
+  html_document:
+    df_print: paged
+---
+```{r setup, context="setup", include=FALSE }
+knitr::opts_chunk$set(echo=TRUE)
+```
+
+```{r message=FALSE, echo=FALSE}
+library(shiny)
+library(tidyverse)
+library(gapminder)
+library(shinythemes)
+library(readr)
+library(ggplot2)
+library(stringr)
+library(dplyr)
+library(DT)
+library(tools)
+
+```
+
+
+
+\newpage
+## 4.1 Example 1: basic
+![Example 1: basic](img/4.1.JPG)
+ 
+
+```{r}
+
+ui <- fluidPage(
+  h1("Gapminder"),
+  sliderInput(inputId = "life", label = "Life expectancy",
+              min = 0, max = 120,
+              value = c(30, 50)),
+  selectInput("continent", "Continent",
+              choices = c("All", levels(gapminder$continent))),
+  # downloadButton("download_data"),
+  plotOutput("plot"),
+  tableOutput("table")
+)
+
+server <- function(input, output) {
+  
+  # filtered data
+  filtered_data <- reactive({
+    
+    # sliderInput range
+    data <- gapminder %>% 
+      filter(
+        lifeExp >= input$life[1],
+        lifeExp <= input$life[2]
+      )
+   
+    # selectInput choices
+    if (input$continent != "All") {
+      data <- data %>% 
+        filter(
+          continent == input$continent
+        )
+    }
+    data
+  })
+  
+  
+  output$table <- renderTable({
+    data <- filtered_data()
+    data
+  })
+  
+  # output$download_data <- downloadHandler(
+  #   filename = "gapminder_data.csv",
+  #   content = function(file) {
+  #     data <- filtered_data()
+  #     write.csv(data, file, row.names = FALSE)
+  #   }
+  # )
+  
+  output$plot <- renderPlot({
+    data <- filtered_data()
+    ggplot(data, aes(gdpPercap, lifeExp)) +
+      geom_point()
+  })
+}
+
+shinyApp(ui, server)
+```
+
+
+
+
+\newpage
+## 4.2 Example 2: Layout
+![Example 2](img/4.2.JPG)
+
+![Example 2](img/4.2_.JPG)
+
+```{r}
+
+ui <- navbarPage(
+  title = "Dashboard",
+  tabPanel(
+    title = "About",
+    h1("Hello World"),
+    p("some text ", a(href="http://www.google.co.uk", "Google"))
+  ),
+  tabPanel(
+    title = "Gapminder Analysis",
+    
+    sidebarLayout(
+      sidebarPanel(
+        textInput("title", "Title", "GDP vs life exp"),
+        numericInput("size", "Point size", 1, 1),
+        checkboxInput("fit", "Add line of best fit", FALSE),
+        radioButtons("colour", "Point colour",
+                     choices = c("blue", "red", "green", "black")),
+        selectInput("continents", "Continents",
+                    choices = levels(gapminder$continent),
+                    multiple = TRUE,
+                    selected = "Europe"),
+        # Add a slider selector for years to filter
+        sliderInput("years", "Years",
+                    min(gapminder$year), max(gapminder$year),
+                    value = c(1977, 2002))
+      ),
+      mainPanel(
+        plotOutput("plot")
+      )
+    )
+  )
+)
+
+# Define the server logic
+server <- function(input, output) {
+  output$plot <- renderPlot({
+    # Subset the gapminder data by the chosen years
+    data <- gapminder %>% 
+      filter(
+        continent %in% input$continents,
+        year >= input$years[1],
+        year <= input$years[2]
+      )
+    
+    p <- ggplot(data, aes(gdpPercap, lifeExp)) +
+      geom_point(size = input$size, col = input$colour) +
+      ggtitle(input$title)
+    
+    if (input$fit) {
+      p <- p + geom_smooth(method = "lm")
+    }
+    p
+  })
+}
+
+shinyApp(ui = ui, server = server)
+
+```
+
+\newpage
+## 4.3 Example 3: Layout
+![Example 3](img/4.3.JPG)
+ 
+
+
+```{r}
+
+ui <- navbarPage(
+  title = "Dashboard",
+  tabPanel(
+    title = "About",
+    h1("Hello World"),
+    p("some text ", a(href="http://www.google.co.uk", "Google"))
+  ),
+  tabPanel(
+    title = "Gapminder Analysis",
+    
+    sidebarLayout(
+      sidebarPanel(
+        selectInput("x", "X-Axis:",
+                    choices = c(
+                      "Year" = "year",
+                      "Life Expectancy" = "lifeExp",
+                      "Population" = "pop",
+                      "GDP per Capita" = "gdpPercap"
+                    ),
+                    multiple = FALSE,
+                    selected = "gdpPercap"),
+        selectInput("y", "Y-Axis:",
+                    choices = c(
+                      "Year" = "year",
+                      "Life Expectancy" = "lifeExp",
+                      "Population" = "pop",
+                      "GDP per Capita" = "gdpPercap"
+                    ),
+                    multiple = FALSE,
+                    selected = "lifeExp"),
+        textInput("title", "Title", "GDP vs life exp"),
+        numericInput("size", "Point size", 1, 1),
+        checkboxInput("fit", "Add line of best fit", FALSE),
+        radioButtons("colour", "Point colour",
+                     choices = c("blue", "red", "green", "black")),
+        selectInput("continents", "Continents",
+                    choices = levels(gapminder$continent),
+                    multiple = TRUE,
+                    selected = "Europe"),
+        # Add a slider selector for years to filter
+        sliderInput("years", "Years",
+                    min(gapminder$year), max(gapminder$year),
+                    value = c(1977, 2002))
+      ),
+      mainPanel(
+        plotOutput("plot")
+      )
+    )
+  )
+)
+
+# Define the server logic
+server <- function(input, output) {
+  
+  output$plot <- renderPlot({
+    # Subset the gapminder data by the chosen years
+    
+    
+    data <- gapminder %>% 
+      filter(
+        continent %in% input$continents,
+        year >= input$years[1],
+        year <= input$years[2]
+      )
+    
+    p <- ggplot(data, aes_string(input$x, input$y)) +
+      geom_point(size = input$size, col = input$colour)
+    
+    if (input$fit) {
+      p <- p + geom_smooth(method = "lm")
+    }
+    p
+  })
+}
+
+shinyApp(ui = ui, server = server)
+
+```
+\newpage
+## 4.4 Example 4: Layout
+![Example 4](img/4.4.JPG)
+
+```{r}
+
+ui <- navbarPage(
+  title = "Dashboard",
+  tabPanel(
+    title = "About",
+    h1("Hello World"),
+    p("some text ", a(href="http://www.google.co.uk", "Google"))
+  ),
+  tabPanel(
+    title = "Gapminder Analysis",
+    
+    sidebarLayout(
+      sidebarPanel(
+        selectInput("x", "X-Axis:",
+                    choices = c(
+                      "Year" = "year",
+                      "Life Expectancy" = "lifeExp",
+                      "Population" = "pop",
+                      "GDP per Capita" = "gdpPercap"
+                    ),
+                    multiple = FALSE,
+                    selected = "gdpPercap"),
+        selectInput("y", "Y-Axis:",
+                    choices = c(
+                      "Year" = "year",
+                      "Life Expectancy" = "lifeExp",
+                      "Population" = "pop",
+                      "GDP per Capita" = "gdpPercap"
+                    ),
+                    multiple = FALSE,
+                    selected = "lifeExp"),
+        textInput("title", "Title", "GDP vs life exp"),
+        numericInput("size", "Point size", 1, 1),
+        checkboxInput("fit", "Add line of best fit", FALSE),
+        radioButtons("colour", "Point colour",
+                     choices = c("blue", "red", "green", "black")),
+        selectInput("continents", "Continents",
+                    choices = levels(gapminder$continent),
+                    multiple = TRUE,
+                    selected = "Europe"),
+        # Add a slider selector for years to filter
+        sliderInput("years", "Years",
+                    min(gapminder$year), max(gapminder$year),
+                    value = c(1977, 2002))
+      ),
+      mainPanel(
+        tabsetPanel(type = "tabs",
+                    tabPanel("Plot", plotOutput("plot")),
+                    tabPanel("Summary", DT::dataTableOutput("table"))
+        )
+        
+      )
+    )
+  )
+)
+
+# Define the server logic
+server <- function(input, output) {
+  
+  filtered_data <- reactive({
+    # Subset the gapminder data by the chosen years and continents
+    
+    data <- gapminder %>% 
+      filter(
+        continent %in% input$continents,
+        year >= input$years[1],
+        year <= input$years[2]
+      )
+    
+    data
+  })
+  
+  output$plot <- renderPlot({
+    data <- filtered_data()
+    
+    p <- ggplot(data, aes_string(input$x, input$y)) +
+      geom_point(size = input$size)
+    
+    if (input$fit) {
+      p <- p + geom_smooth(method = "lm")
+    }
+    p
+  })
+  
+  output$table <- DT::renderDataTable({
+    data <- filtered_data()
+    data
+  })
+}
+
+shinyApp(ui = ui, server = server)
+
+```
+
+

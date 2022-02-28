@@ -1,0 +1,639 @@
+---
+title: 'DSA8022: Frontiers in Analytics'
+output:
+  pdf_document: 
+    fig_caption: yes
+  html_notebook: default
+  html_document:
+    df_print: paged
+---
+```{r setup, context="setup", include=FALSE }
+knitr::opts_chunk$set(echo=TRUE)
+```
+
+```{r message=FALSE, echo=FALSE}
+library(shiny)
+library(tidyverse)
+library(gapminder)
+library(shinythemes)
+library(readr)
+library(ggplot2)
+library(stringr)
+library(dplyr)
+library(DT)
+library(tools)
+
+```
+
+
+# 1. Shiny Basics 
+## 1.1 Template
+![Template](img/1.1.JPG)
+
+```{r}
+
+
+ui <- fluidPage("Hello World",
+                tags$h1("First level"),
+                tags$img(src='http://www.qub.ac.uk/home/media/Media,767339,en.svg'),
+                tags$img(src="qub.png")
+                )
+
+server <- function(input, output) {}
+
+shinyApp(ui = ui, server = server)
+```
+
+
+\newpage
+## 1.2 Histogram
+![Histogram](img/1.2.JPG)
+
+```{r}
+ui <- fluidPage(
+  sliderInput(inputId = "num", 
+    label = "Choose a number", 
+    value = 25, min = 1, max = 100),
+  textInput(inputId = 't1',label = '123'),
+  textOutput(outputId = 'ot1'),
+  plotOutput(outputId = "hist")
+)
+
+server <- function(input, output) {
+  output$hist <- renderPlot({
+    data <- rnorm(input$num)
+    hist(data)
+  })
+  
+  output$ot1<-renderText({input$t1})
+}
+
+shinyApp(ui = ui, server = server)
+```
+
+\newpage
+## 1.3 Application
+![Application](img/1.3.JPG)
+```{r}
+
+ui <- fluidPage(
+  headerPanel('Iris k-means clustering'),
+  sidebarPanel(
+    selectInput('xcol', 'X Variable', names(iris)),
+    selectInput('ycol', 'Y Variable', names(iris),
+      selected = names(iris)[[2]]),
+    numericInput('clusters', 'Cluster count', 3,
+      min = 1, max = 9)
+  ),
+  mainPanel(
+    plotOutput('plot1')
+  )
+)
+
+server <- function(input, output) {
+
+  selectedData <- reactive({
+    iris[, c(input$xcol, input$ycol)]
+  })
+
+  clusters <- reactive({
+    kmeans(selectedData(), input$clusters)
+  })
+
+  output$plot1 <- renderPlot({
+    
+    selectedData() %>%
+      ggplot(aes(x = selectedData()[[1]], y = selectedData()[[2]])) +
+      geom_point(aes(colour = factor(clusters()$cluster))) +
+      labs(
+        x = input$xcol,
+        y = input$ycol,
+        legend = "Clusters"
+      )
+ 
+  })
+
+}
+
+shinyApp(ui = ui, server = server)
+
+```
+
+\newpage 
+# 2. Shiny layout
+## 2.1 Tags
+
+![Tags](img/2.1.JPG)
+```{r}
+ui <- fluidPage(
+  h1("My Shiny App"),
+  p(style = "font-family:Impact",
+    "See other apps in the",
+    a("Shiny Showcase",
+      href = "http://www.rstudio.com/
+      products/shiny/shiny-user-showcase/")
+  )
+)
+
+server <- function(input, output){}
+
+shinyApp(ui = ui, server = server)
+
+```
+
+## 2.2 Layout: fluidRow
+![Tags](img/2.2.JPG)
+
+```{r}
+
+ui <- fluidPage(
+  fluidRow(
+   column(4),
+   column(5, sliderInput(inputId = "num", 
+     label = "Choose a number", 
+     value = 25, min = 1, max = 100))
+  ),
+  fluidRow(
+    column(4, offset = 8,
+      plotOutput("hist")
+    )
+  )
+)
+
+server <- function(input, output) {
+  output$hist <- renderPlot({
+    hist(rnorm(input$num))
+  })
+}
+
+shinyApp(ui = ui, server = server)
+```
+
+
+\newpage
+## 2.3 Layout: wellPanel
+![wellPanel](img/2.3.JPG)
+```{r}
+ui <- fluidPage(
+  wellPanel(
+    sliderInput(inputId = "num", 
+      label = "Choose a number", 
+      value = 25, min = 1, max = 100),
+    textInput(inputId = "title", 
+      label = "Write a title",
+      value = "Histogram of Random Normal Values")
+  ),
+  plotOutput("hist")
+)
+
+server <- function(input, output) {
+  output$hist <- renderPlot({
+    hist(rnorm(input$num), main = input$title)
+  })
+}
+
+shinyApp(ui = ui, server = server)
+```
+
+\newpage
+## 2.4 Layout: tabsetPanel
+
+![tabsetPanel](img/2.4.JPG)
+```{r}
+
+ui <- fluidPage(title = "Random generator",
+  tabsetPanel(              
+    tabPanel(title = "Normal data",
+      plotOutput("norm"),
+      actionButton("renorm", "Resample")
+    ),
+    tabPanel(title = "Uniform data",
+      plotOutput("unif"),
+      actionButton("reunif", "Resample")
+    ),
+    tabPanel(title = "Chi Squared data",
+      plotOutput("chisq"),
+      actionButton("rechisq", "Resample")
+    )
+  )
+)
+
+server <- function(input, output) {
+  
+  rv <- reactiveValues(
+    norm = rnorm(500), 
+    unif = runif(500),
+    chisq = rchisq(500, 2))
+  
+  observeEvent(input$renorm, { rv$norm <- rnorm(500) })
+  observeEvent(input$reunif, { rv$unif <- runif(500) })
+  observeEvent(input$rechisq, { rv$chisq <- rchisq(500, 2) })
+  
+  output$norm <- renderPlot({
+    hist(rv$norm, breaks = 30, col = "grey", border = "white",
+      main = "500 random draws from a standard normal distribution")
+  })
+  output$unif <- renderPlot({
+    hist(rv$unif, breaks = 30, col = "grey", border = "white",
+      main = "500 random draws from a standard uniform distribution")
+  })
+  output$chisq <- renderPlot({
+    hist(rv$chisq, breaks = 30, col = "grey", border = "white",
+       main = "500 random draws from a Chi Square distribution with two degree of freedom")
+  })
+}
+
+shinyApp(server = server, ui = ui)
+```
+
+\newpage
+## 2.5 Layout: navlistPanel
+![navlistPanel](img/2.5.JPG)
+```{r}
+
+ui <- fluidPage(title = "Random generator",
+  navlistPanel(              
+    tabPanel(title = "Normal data",
+      plotOutput("norm"),
+      actionButton("renorm", "Resample")
+    ),
+    tabPanel(title = "Uniform data",
+      plotOutput("unif"),
+      actionButton("reunif", "Resample")
+    ),
+    tabPanel(title = "Chi Squared data",
+      plotOutput("chisq"),
+      actionButton("rechisq", "Resample")
+    )
+  )
+)
+
+server <- function(input, output) {
+  
+  rv <- reactiveValues(
+    norm = rnorm(500), 
+    unif = runif(500),
+    chisq = rchisq(500, 2))
+  
+  observeEvent(input$renorm, { rv$norm <- rnorm(500) })
+  observeEvent(input$reunif, { rv$unif <- runif(500) })
+  observeEvent(input$rechisq, { rv$chisq <- rchisq(500, 2) })
+  
+  output$norm <- renderPlot({
+    hist(rv$norm, breaks = 30, col = "grey", border = "white",
+      main = "500 random draws from a standard normal distribution")
+  })
+  output$unif <- renderPlot({
+    hist(rv$unif, breaks = 30, col = "grey", border = "white",
+      main = "500 random draws from a standard uniform distribution")
+  })
+  output$chisq <- renderPlot({
+    hist(rv$chisq, breaks = 30, col = "grey", border = "white",
+       main = "500 random draws from a Chi Square distribution with two degree of freedom")
+  })
+}
+
+shinyApp(server = server, ui = ui)
+```
+\newpage
+## 2.6 Layout: sidebarLayout
+
+![sidebarLayout](img/2.6.JPG)
+```{r}
+
+ui <- fluidPage(
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput(inputId = "num", 
+        label = "Choose a number", 
+        value = 25, min = 1, max = 100),
+      textInput(inputId = "title", 
+        label = "Write a title",
+        value = "Histogram of Random Normal Values")
+    ),
+    mainPanel(
+      plotOutput("hist")
+    )
+  )
+)
+
+server <- function(input, output) {
+  output$hist <- renderPlot({
+    hist(rnorm(input$num), main = input$title)
+  })
+}
+
+shinyApp(ui = ui, server = server)
+```
+
+\newpage
+## 2.7 Layout: navbarPage
+![navbarPage](img/2.7.JPG)
+```{r}
+
+ui <- navbarPage(title = "Random generator",
+    tabPanel(title = "Normal data",
+      plotOutput("norm"),
+      actionButton("renorm", "Resample")
+    ),
+    tabPanel(title = "Uniform data",
+      plotOutput("unif"),
+      actionButton("reunif", "Resample")
+    ),
+    tabPanel(title = "Chi Squared data",
+      plotOutput("chisq"),
+      actionButton("rechisq", "Resample")
+    )
+
+)
+
+server <- function(input, output) {
+  
+  rv <- reactiveValues(
+    norm = rnorm(500), 
+    unif = runif(500),
+    chisq = rchisq(500, 2))
+  
+  observeEvent(input$renorm, { rv$norm <- rnorm(500) })
+  observeEvent(input$reunif, { rv$unif <- runif(500) })
+  observeEvent(input$rechisq, { rv$chisq <- rchisq(500, 2) })
+  
+  output$norm <- renderPlot({
+    hist(rv$norm, breaks = 30, col = "grey", border = "white",
+      main = "500 random draws from a standard normal distribution")
+  })
+  output$unif <- renderPlot({
+    hist(rv$unif, breaks = 30, col = "grey", border = "white",
+      main = "500 random draws from a standard uniform distribution")
+  })
+  output$chisq <- renderPlot({
+    hist(rv$chisq, breaks = 30, col = "grey", border = "white",
+       main = "500 random draws from a Chi Square distribution with two degree of freedom")
+  })
+}
+
+shinyApp(server = server, ui = ui)
+```
+
+\newpage
+## 2.8 Layout: navbarMenu
+![navbarPage](img/2.8.JPG)
+```{r}
+
+ui <- navbarPage(title = "Random generator",
+  tabPanel(title = "Normal data",
+    plotOutput("norm"),
+    actionButton("renorm", "Resample")
+  ),
+  navbarMenu(title = "Other data",
+    tabPanel(title = "Uniform data",
+      plotOutput("unif"),
+      actionButton("reunif", "Resample")
+    ),
+    tabPanel(title = "Chi Squared data",
+      plotOutput("chisq"),
+      actionButton("rechisq", "Resample")
+    )
+  )
+)
+
+server <- function(input, output) {
+  
+  rv <- reactiveValues(
+    norm = rnorm(500), 
+    unif = runif(500),
+    chisq = rchisq(500, 2))
+  
+  observeEvent(input$renorm, { rv$norm <- rnorm(500) })
+  observeEvent(input$reunif, { rv$unif <- runif(500) })
+  observeEvent(input$rechisq, { rv$chisq <- rchisq(500, 2) })
+  
+  output$norm <- renderPlot({
+    hist(rv$norm, breaks = 30, col = "grey", border = "white",
+      main = "500 random draws from a standard normal distribution")
+  })
+  output$unif <- renderPlot({
+    hist(rv$unif, breaks = 30, col = "grey", border = "white",
+      main = "500 random draws from a standard uniform distribution")
+  })
+  output$chisq <- renderPlot({
+    hist(rv$chisq, breaks = 30, col = "grey", border = "white",
+       main = "500 random draws from a Chi Square distribution with two degree of freedom")
+  })
+}
+
+shinyApp(server = server, ui = ui)
+```
+
+\newpage
+# 3 Reactivity
+## 3.1 Two inputs
+![Two inputs](img/3.1.JPG)
+
+```{r}
+
+ui <- fluidPage(
+  sliderInput(inputId = "num", 
+    label = "Choose a number", 
+    value = 25, min = 1, max = 100),
+  
+  textInput(inputId = "title", 
+    label = "Write a title",
+    value = "Histogram of Random Normal Values"),
+  plotOutput("hist")
+)
+
+server <- function(input, output) {
+  output$hist <- renderPlot({
+    hist(rnorm(input$num), main = input$title)
+  })
+}
+
+shinyApp(ui = ui, server = server)
+```
+\newpage
+## 3.2 Two outputs
+![Two outputs](img/3.2.JPG)
+
+```{r}
+
+ui <- fluidPage(
+  sliderInput(inputId = "num", 
+    label = "Choose a number", 
+    value = 25, min = 1, max = 100),
+  plotOutput("hist"),
+  verbatimTextOutput("stats")
+)
+
+server <- function(input, output) {
+  output$hist <- renderPlot({
+    data <- rnorm(input$num)
+    hist(data)
+  })
+  
+  output$stats <- renderPrint({
+    summary(rnorm(input$num))
+  })
+}
+
+shinyApp(ui = ui, server = server)
+```
+
+
+\newpage
+## 3.3 Reactive
+![Reactive](img/3.3.JPG)
+
+
+```{r}
+
+ui <- fluidPage(
+  sliderInput(inputId = "num", 
+    label = "Choose a number", 
+    value = 25, min = 1, max = 100),
+  plotOutput("hist"),
+  verbatimTextOutput("stats")
+)
+
+server <- function(input, output) {
+  
+  data <- reactive({
+    rnorm(input$num)
+  })
+  
+  output$hist <- renderPlot({
+    hist(data())
+    
+  })
+  output$stats <- renderPrint({
+    summary(data())
+  })
+}
+
+shinyApp(ui = ui, server = server)
+```
+\newpage
+## 3.4 Isolate
+![Isolate](img/3.4.JPG)
+
+```{r}
+
+ui <- fluidPage(
+  sliderInput(inputId = "num", 
+    label = "Choose a number", 
+    value = 25, min = 1, max = 100),
+  textInput(inputId = "title", 
+    label = "Write a title",
+    value = "Histogram of Random Normal Values"),
+  plotOutput("hist")
+)
+
+server <- function(input, output) {
+  output$hist <- renderPlot({
+    hist(rnorm(input$num), main = isolate(input$title))
+  })
+}
+
+shinyApp(ui = ui, server = server)
+```
+
+\newpage
+## 3.5 actionButton
+![actionButton](img/3.5.JPG)
+
+```{r}
+ui <- fluidPage(
+  actionButton(inputId = "clicks", 
+    label = "Click me")
+)
+
+server <- function(input, output) {
+  observeEvent(input$clicks, {
+    print(as.numeric(input$clicks))
+  })
+}
+
+shinyApp(ui = ui, server = server)
+```
+\newpage
+## 3.6 observeEvent
+![observeEvent](img/3.6.JPG)
+
+```{r}
+ui <- fluidPage(
+  sliderInput(inputId = "num", 
+    label = "Choose a number",
+    min = 1, max = 100, value = 25),
+  actionButton(inputId = "go", 
+    label = "Print Value")
+)
+
+server <- function(input, output) {
+  
+  # observe responds to the print button
+  # but not the slider
+  observeEvent(input$go, {
+    print(as.numeric(input$num))
+  })
+}
+
+shinyApp(ui = ui, server = server)
+```
+\newpage
+## 3.7 eventReactive
+![eventReactive](img/3.7.JPG)
+
+![eventReactive](img/3.7_.JPG)
+
+```{r}
+
+ui <- fluidPage(
+  sliderInput(inputId = "num", 
+    label = "Choose a number", 
+    value = 25, min = 1, max = 100),
+  actionButton(inputId = "go", 
+    label = "Update"),
+  plotOutput("hist")
+)
+
+server <- function(input, output) {
+  data <- eventReactive(input$go, {
+    rnorm(input$num) 
+  })
+  
+  output$hist <- renderPlot({
+    hist(data())
+  })
+}
+
+shinyApp(ui = ui, server = server)
+
+```
+\newpage
+## 3.8 reactiveValues
+![eventReactive](img/3.8.JPG)
+
+![eventReactive](img/3.8_.JPG)
+
+```{r}
+ui <- fluidPage(
+  actionButton(inputId = "norm", label = "Normal"),
+  actionButton(inputId = "unif", label = "Uniform"),
+  plotOutput("hist")
+)
+
+server <- function(input, output) {
+
+  rv <- reactiveValues(data = rnorm(100))
+
+  observeEvent(input$norm, { rv$data <- rnorm(100) })
+  observeEvent(input$unif, { rv$data <- runif(100) })
+
+  output$hist <- renderPlot({ 
+    hist(rv$data) 
+  })
+}
+
+shinyApp(ui = ui, server = server)
+```
+
