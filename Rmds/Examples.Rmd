@@ -6,6 +6,7 @@ output:
   html_notebook: default
   html_document:
     df_print: paged
+runtime: shiny
 ---
 ```{r setup, context="setup", include=FALSE }
 knitr::opts_chunk$set(echo=TRUE)
