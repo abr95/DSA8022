@@ -1,6 +1,15 @@
-library(ggplot2)
+library(tidyverse)
+library(shiny)
 
-plot <- ggplot()
+ui <- fluidPage()
 
-x <- print(plot)
+server <- function(
+  input, 
+  output
+) {
+}
 
+shinyApp(
+  ui= ui, 
+  server = server
+)
