@@ -7,7 +7,7 @@ options(shiny.port = 8888)
 ui <- fluidPage(
   textInput(inputId = "name", label = "Name", value = "AB"),
   textOutput(outputId = "name"),
-  textOutput(outputId = "name2"),
+  textOutput(outputId = "name2")
 )
 
 server <- function(
@@ -15,10 +15,10 @@ server <- function(
   output
 ) {
   output$name <- renderText({
-    paste("Big Bad ", input$name)
+    input$name
   })
   output$name2 <- renderText({
-    paste("Big Bad ", input$name)
+    input$name
   })
 }
 
