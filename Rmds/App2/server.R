@@ -5,8 +5,11 @@ function(
   input, 
   output
 ) {
-  output$theme <- renderText({
-    input$theme
+  output$shiny_theme <- renderText({
+    input$input_theme
+  })
+  output$text_theme <- renderText({
+    input$input_theme
   })
   observeEvent(input$button, {
     print("Pressed")

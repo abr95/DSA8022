@@ -21,49 +21,59 @@ ui <- navbarPage(
   tabPanel(
     title = "Gapminder Analysis",
     
+    checkboxInput("sidebar", "Show Sidebar", value = FALSE),
+    
+    
     sidebarLayout(
       
+      conditionalPanel(condition = "input.sidebar",
       sidebarPanel(
         # sidebar panel
         
-        selectInput("x", "X-Axis:",
-                    choices = c(
-                      "Year" = "year",
-                      "Life Expectancy" = "lifeExp",
-                      "Population Size" = "pop",
-                      "GDP per Capita" = "gdpPercap"
-                    ),
-                    selected = "gdpPercap"),
-        
-        selectInput("y", "Y-Axis:",
-                    choices = c(
-                      "Year" = "year",
-                      "Life Expectancy" = "lifeExp",
-                      "Population Size" = "pop",
-                      "GDP per Capita" = "gdpPercap"
-                    ),
-                    selected = "lifeExp"),
-        textInput("title", "Title", "GDP vs Life Expectancy"),
-        numericInput("size", "Point Size", 1, 1),
-        checkboxInput("fit", "Add line of the best fit", value = FALSE),
-        radioButtons("colour", "Point Colour", 
-                     choices = c("blue", "red", "green", "black")),
+        conditionalPanel("input.tabPane == 'Plot'",
+          
+          selectInput("x", "X-Axis:",
+                      choices = c(
+                        "Year" = "year",
+                        "Life Expectancy" = "lifeExp",
+                        "Population Size" = "pop",
+                        "GDP per Capita" = "gdpPercap"
+                      ),
+                      selected = "gdpPercap"),
+          
+          selectInput("y", "Y-Axis:",
+                      choices = c(
+                        "Year" = "year",
+                        "Life Expectancy" = "lifeExp",
+                        "Population Size" = "pop",
+                        "GDP per Capita" = "gdpPercap"
+                      ),
+                      selected = "lifeExp"),
+          textInput("title", "Title", "GDP vs Life Expectancy"),
+          numericInput("size", "Point Size", 1, 1),
+          checkboxInput("fit", "Add line of the best fit", value = FALSE),
+          checkboxInput("linear", "linear (or LOESS)", value = TRUE),
+          radioButtons("colour", "Point Colour", 
+                       choices = c("blue", "red", "green", "black")),
+          
+        ),
         selectInput("continents", "Continents",
                     # choices = factor(gapminder$continent),  # alternatively, un-ordered
                     choices = levels(gapminder$continent), # alternatively, ordered
-                    multiple = FALSE,
+                    multiple = TRUE,
                     selected = "Europe"),
         sliderInput("years", "Years", 
                     min = min(gapminder$year), 
                     max = max(gapminder$year), 
                     value = c(1977, 2002), sep="")
         
-      ),
+      )),
       
       mainPanel(
         # main panel
         # plotOutput("plot"),
-        tabsetPanel(
+        textOutput(outputId = "plotPaneText"),
+        tabsetPanel(id = "tabPane",
           tabPanel("Plot", 
                    plotOutput("plot")),
           
@@ -100,6 +110,18 @@ server <- function(input, output) {
 
   })
   
+  output$plotPane <- renderText({
+    print(input$tabPane)
+    print("Hello")
+    input$tabPane
+  })
+  
+  output$plotPaneText <- renderText({
+    print(input$tabPane)
+    print("Hello")
+    input$tabPane
+  })
+  
   output$plot <- renderPlot({
     # If you want, you can create variables to store input values    
     # x_title <- input$x
@@ -115,7 +137,11 @@ server <- function(input, output) {
       ) 
     
     if(input$fit){
-      p <- p + geom_smooth(method = "lm")
+      if(input$linear){
+        p <- p + geom_smooth(method = "lm")
+      } else {
+        p <- p + geom_smooth(method = "loess")
+      }
     }
     
     p

@@ -3,7 +3,7 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       conditionalPanel(
-        condition = "input.plotType == 1",
+        condition = "input.plotType == 1 || input.plotType == 3",
         selectInput(
           "breaks", "Breaks",
           c("Sturges", "Scott", "Freedman-Diaconis", "Custom" = "custom")

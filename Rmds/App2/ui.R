@@ -2,33 +2,23 @@ library(tidyverse)
 library(bslib)
 library(shiny)
 library(shinythemes)
+library(htmltools)
 
 options(shiny.host = "0.0.0.0")
 options(shiny.port = 8888)
 
-span()
-
 source("shine.R")
 
-rawValue <- function(
-  outputId
-) {
-  text = textOutput(outputId = outputId)
-  print(ls(text))
-  print(text$attribs)
-  print(text$children)
-  print(text$name)
-  print(text)
-  return(text)
-}
+
 
 ui <- fluidPage(
   title = "App102",
-  theme = shinytheme("flatly"),
+  tags$head(tags$link(rel="stylesheet", type="text/css", href=paste("shinythemes/css/", "shiny_theme", ".min.css", sep = ""))),
+  #theme = shinytheme("cosmo"),
   actionButton(inputId = "button", label = "Button"),
-  rawValue(outputId = "theme"),
+  textOutput(outputId = "text_theme"),
   selectInput(
-    inputId = "theme",
+    inputId = "input_theme",
     choices = allThemes(),
     label = "Theme"
   )
