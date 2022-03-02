@@ -4,8 +4,8 @@ library(shinythemes)
 library(thematic)
 library(DT)
 
-movies <- read_csv("./data/movies.csv", show_col_types = FALSE)
-movies_codebook <- read_csv("./data/movies_codebook.csv", show_col_types = FALSE)
+movies <- read_csv("./data/movies.csv")
+movies_codebook <- read_csv("./data/movies_codebook.csv")
 
 movies_field_axis_map <- c(
   "IMDB rating" = "imdb_rating",
@@ -119,6 +119,7 @@ samplingControls <- function(
 ) {
   panel = conditionalPanel(
     condition = "true",
+    hr(),
     tags$h3("Subsetting and sampling"),
     radioButtons(
       inputId = "types",
@@ -204,7 +205,7 @@ codebookTab <- function(
   tab <- tabPanel(
     title = "Codebook",
     value = 3,
-    dataTableOutput(
+    DT::dataTableOutput(
       outputId = "codebook_table"
     )
   )
@@ -243,7 +244,7 @@ server <- function(
   output,
   session
 ) {
-  
+table
   data_sample <- reactive({
     sample <- movies %>%filter(title_type == input$types)
     sample <- sample %>% slice_sample(n = input$sample_size)
@@ -279,7 +280,11 @@ server <- function(
   })
   
   output$table <- DT::renderDataTable({
-    data_sample()
+    DT::datatable(
+      data = data_sample(),
+      rownames = FALSE,
+      options = list(pageLength = 10)
+    )
   })
   
   output$codebook_table <- DT::renderDataTable({
