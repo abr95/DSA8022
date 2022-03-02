@@ -1,0 +1,286 @@
+---
+title: "Physio_dash"
+author: "GaryMcKeown"
+date: "10/02/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Physio_dash is a R Shiny app with accompanying set of exercises created by Damien Dupré and me (Gary). The program is a fully implemented dashboard style program that allows a user to enter or simulate physiological style data and have it presented as a dashboard. It shows you how various pieces of code work together. The exercises present a cut down version of the overall app and builds functionality into the app gradually by presenting the various pieces of code that provide the crucial aspects of the app that make it work. This is a bit of the course that is assessed so it is useful to pay attention to each of the sefctions of the exercises and try and notice how the pieces of the code knit together to make the app work.
+
+## Exercise 1
+
+In this first exercise we will add the code to the input part of the program to create a simulated set of inputs.
+
+Download the Physio_dash_simulate1.R file from Canvas and and open in RStudio.
+
+As we know Shiny apps have three parts to their code. Some initialisation code; a user interface or UI part where the bit that the user sees and interacts with is created; and a server part where all the computation that is required happens. There is a popular software design pattern known as Model–view–controller (MVC), where the model is where the data is stored and manipulated--this would be the server part in Shiny. The View part is the code for the user interface, obviously the ui part in Shiny. The controller code glues these aspects together and deals with user inputs. The idea is to separate the aspects of a program out to allow relevant parts of code to specialise.
+
+In this first exercise the UI part of the code needs to be added. The code that needs to be added is provided below; add it where the simulation ui comment part is and remember that you need to add a comma for shiny to work properly. You will be able to find the comment part that needs to be replaced with the code, it looks like this:
+################################################################
+############################ simulation ui #####################
+################################################################
+
+
+The code is presented below. This code is not standalone, it needs to be inserted into the Physio_dash_simulate1.R file
+You do not need to take the R Markdown code chunk pieces (the first and last lines with backticks `)
+
+```{r eval=FALSE}
+################################################################
+tabPanel(title=tagList(shiny::icon("random"), "Data Simulation"),
+                                                  sidebarLayout(
+                                                    sidebarPanel(
+                                                      sliderInput("duration", "Session duration (min):",min=1, max=60, value=5, step= 1),
+                                                      sliderInput("autocorrelation", "Autocorrelation",min=0, max=0.99, value=0.9, step= 0.01),
+                                                      actionButton(inputId = "simulate_data", label = "Simulate data",style = "color: black; background-color: #FF8000")
+                                                    ),
+                                                    mainPanel(
+                                                      tags$p("first two rows of the Heartrate file"),
+                                                      tableOutput("HR_simulate_table"),
+                                                      tags$p("first two rows of the ECG file"),
+                                                      tableOutput("ECG_simulate_table"),
+                                                      tags$p("first two rows of the Breathingrate file"),
+                                                      tableOutput("BR_simulate_table"),
+                                                      tags$p("first two rows of the Skintemperature file"),
+                                                      tableOutput("ST_simulate_table"),
+                                                      tags$p("first two rows of the GSR file"),
+                                                      tableOutput("GSR_simulate_table")
+                                                    )
+                                                  )
+                                         )
+################################################################
+```
+
+This code creates a tabPanel in an existing set of three tabs for the input part of the program. The first of the three tabs is for an API or Cloud interface--you could adapt this code in an app of your own to bring data in from an application programming interface provided by some company, a government or NGO; the second is for the manual input of data, that is, providing a data file--you could adapt this code in an app you create to load in files; finally, the third tab, the one we are interested in here, is for the simulated data. This is the part that we will be working on in this exercise. Simulated data is very useful when setting up an app as it gives you some fast and straightforward data in a shape you define, this allows you to quickly show how data will work throughout the model and UI parts of your app.
+
+If you work through the the code you will see that it then creates a sidebarLayout that contains a sidebarPanel. Within the sidebarPanel the code creates a box in the app, which is the panel, that contains two sliderInputs and an action button. Both slider inputs collect information concerning the nature of the simulated data--this information will be sent to the server part of the Shiny app to feed into the simulation functions. The first slider indicates the simulated session length--that would be the time that the physiological data was recorded from a human. The second is an autocorrelation slider--autocorrelation is a feature that we have to be aware of and take into account when we are dealing wih time series data. We will leave these at the default levels for now. Following the sliders there is an action button which simply tells the server side of the app to run the simulation function. It is like saying go to those functions when it is clicked. Pressing this button currently results in no action as we have to add that code in the following exercise.
+
+There are five simulations Heartrate, Lead.One.mV (The Electrocardiogram data or ECG), Breathing.Rate, Skin.Temperature, and GSR_100Microsimens (this is Galvanic Skin Response or GSR data in 100 Microsimens increments). We will add the code to simulate these in the server side in the next exercise.
+
+Finally, there is a panel containing a bit of output for each of the simulations. As the app currently stands this does not do much, but it will provide the first two rows in text of the data.frames created by the simulations. This is a kind of sanity check to let the user know the simulations have been completed and that the data appears to work. It is a bit like some debug code written into the actual UI, and allows feedback to the user to let them know that the action button has done its thing and created the simulated data.
+
+When you click the action button nothing will happen, the code in the server parts is missing. The code we have introduced here sets up the user interface, but it does nothing in the way of providing us with numbers. That requires some server code. We will now address the simulation code in the server part of the shiny app.
+
+## Exercise 2
+
+In this exercise you will still be using the Physio_dash_simulate1.R script so keep it open.
+
+With the UI in place it is now time to address the server code. This is the code that will run when the simulate data action button is pressed. 
+
+Here is example code for the heart rate simulation:
+
+```{r eval=FALSE}
+  data_HR_sim <- eventReactive(input$simulate_data,{
+    time <- seq(t_start, t_start+(input$duration*60000), by = 500)
+    Heartrate <- as.numeric(arima.sim(model = list(ar = input$autocorrelation) , n = length(time), mean = 8, sd = 5))
+    data.frame(time,Heartrate)
+  })
+```
+  
+It is a reactive function that reacts to the action button click event, the action button activates the input$simulate_data variable that then causes the function to run. The function starts out by creating time series data sequence, however, this is not yet in a time series data format it remains an R vector created by the seq() function. As a warning, time can be very tricky to work with as it has so many different ways to describe it, one of the easiest ways to deal with time is to treat it as an integer and the conventional way of doing that is to use UNIX time, also known as POSIX time. UNIX time deals with time by taking the number of seconds that have elapsed since Jan 01 1970 (UTC), so it can be a really big number, this is a bit unwieldy, but it is the conventional and probably the best solution (go here -- https://www.unixtimestamp.com -- and find out what your birthday is in UNIX time). More details on UNIX/POSIX time are given below. Here we use a simplified UNIX time. This time was set at the initialisation of the app with the command:
+  
+```{r eval=FALSE}
+	t_start <- 1500000000000
+```
+	
+The code:
+```{r eval=FALSE}
+  time <- seq(t_start, t_start+(input$duration*60000), by = 500)
+```
+
+creates a vector that runs from 1500000000000 to 1500000300000 in 500 increments. This is the time sequence for our simulation data.
+
+The actual creation of the simulation data takes place in the line: 
+
+```{r eval=FALSE}
+Heartrate <- as.numeric(arima.sim(model = list(ar = input$autocorrelation) , n = length(time), mean = 8, sd = 5))
+```
+
+This creates a numeric vector using the arima.sim() function in the base R stats package. ARIMA stands for AutoRegressive Integrated Moving Average and the arima.sim function simulates data for these kinds of models. They produce the kind of time series data that we are interested in. It requires a number of arguments. The first is model = list(ar = input$autocorrelation) this takes the input from the autocorrelation slider in our UI as the model and uses it as a simple autoregressive (ar) model. The next argument is n which is the length of output series, here we take the length of the vector time. The mean and sd commands are provided for the rand.gen part of the arima.sim function to shape the nature of the simulated data.
+
+Finally the:
+
+```{r eval=FALSE}
+data.frame(time,Heartrate)
+```
+
+command  creates a data frame as the output.
+
+Input the correct part of this code in the server part of the app, then run the app, click the data simulation tab and the action button. Only the relevant part of the code is needed you should be able to work out which part of that code is required. Put it in the server in place of the comment "#### enter the code here". You only need to enter the inner code of the function the outside two lines are already there for you.
+
+Then run the code and go to the Data Simulation tab and press the "Simulate Data" button. This should now do something and you should see some numbers arrive in the UI that correspond to your newly similuated Heart Rate data. When you are making an app it is useful to give yourself some feedback clues to make sure that the app is actually behaving in the way you expect it to. This "first two rows of the Heartrate file" serves as a sanity check to let us know that the data has been created, even through it is not too useful to us as a presentation of the data.
+
+## Exercise 3
+
+Open the Physio_dash_simulate2.R file.
+In this exercise you have to complete three more of the server side simulation pieces of code. The one for Breathing Rate, Skin Temperature, and Galvanic Skin Response (GSR).The data_ECG is complicated and so that code has already been included in the R file, but do take some time to have a look  at how it differs from the first section of simulated code, the heart rate code. I would like you to see if you can add the breathing rate, skin temeperature and Galvanic skin response data simulations. The data_BR_sim, data_ST_sim, and the data_GSR_sim are calculated in a very similar way to heart rate except they use different parameters. Can you create the necessary code in the Physio_dash app using these parameters? 
+```{r eval=FALSE}
+    BR by = 1500, mean = 4, sd = 5, variable name = Breathing.Rate
+    ST by = 1500, mean = 3.7, sd = 0.5, variable name = Skin.Temperature
+    GSR by = 500, mean = 100, sd = 120, variable name = GSR_100Microsimens
+```
+    
+Run the app and see if all you can get the first two rows of the data to show for each of the variables.
+
+## Exercise 4
+
+Open the Physio_dash_features1.R file.
+
+This time we will concentrate on an extra tab item in the UI part of the Shiny app, the Features part of the UI. It was present in the apps in the first exercises, but if you clicked on it nothing happened. We will now make it functional. I will first point out some features of the code. The code at line 194: tags$head((tags$style(type="text/css", " ... command outlines some CSS code to give the app some of its styling. CSS stands for Cascading Style Sheets and is a technology used to help web browsers and web apps present data in a coherent way even though browsers and devices differ in shapes and sizes. This CSS code is followed by a conditionalPanel (line 209) that allows the UI to wait if there is data still loading, presenting the user with a "Loading..." piece of information. This is good user interface practice. You can see this working by selecting a large amount of session time in the simulate data tab.
+
+A UI tabPanel is then created to handle the Heart Rate data, place the following code, the bit inside the R Markdown chunk, after the comment #########################  Features UI tabPanel here:
+
+```{r eval=FALSE}
+tabPanel(title=tagList(shiny::icon("heart-o"), "Heart Rate"),
+                                                sidebarLayout(
+                                                  sidebarPanel(
+                                                    tags$p("Evolution of Heart Rate (HR) according the time")
+                                                  ),
+                                                  mainPanel(
+                                                    dygraphOutput("plot_HR", height = "300px")
+                                                  )
+                                                )
+                                       ) 
+```                                       
+
+Place this code in the main app program, as you have now placed a new bit of code into the app you will have to add a comma after "width=NULL" (line 211) to get this to work properly. 
+
+This piece of code uses an icon and some text for the panel title, then includes some html text to inform the reader--html code can be placed into a Shiny app using the tags command. Finally, there is the code that lets the users output a plot or graph. In this case it is a dygraphOutput from the package dygraphs. dygraphs produces nice dynamic interactive graphs for time series style data, as with many of these kinds of R packages it also contains bindings for R Shiny that allow it to play nicely with Shiny apps. Most of the work is done for you. We like that, good reusable code is a virtue. There are a range of styles of graph that can be used, but we will use the basic dygraph style. the shiny output binding dygraphOutput takes two arguments in this instance, the first is the outputId - "plot_HR" and the second is the height, width could also be adjusted. See the help for more details ?dygraphs.
+
+Now that we have the UI part of the code in place we need to place the server side code of into the file to make it actually do something. You can see the server side code below. Copy the code inside the R Markdown code chunk and paste it into the appropriate place in the R Script. The appropriate place is below the Heart Rate Code here comment in the server side of the code: It looks like this:
+  # Heart Rate #####################################################################
+  # Code here  #####################################################################
+  
+
+Place the R code:
+```{r eval=FALSE}
+  data_HR <- reactive({
+    if (!is.null(data_HR_sim())){
+      data <- data_HR_sim()
+    }  
+    data <- data %>%
+      dplyr::select(time,Heartrate) %>%
+      dplyr::mutate(biometric = "HR") %>%
+      dplyr::rename(value = Heartrate) %>%
+      dplyr::mutate(time_date = as.POSIXct(as.numeric(as.character(time))/1000, origin = "1970-01-01", tz="Europe/London"))
+    return(data)
+  })
+  
+  output$plot_HR <- renderDygraph({
+    HR_xts <- xts(x = data_HR()$value, order.by = data_HR()$time_date) # specific dataframe with time series class
+    dygraph(HR_xts, main = " ", ylab = "Heart Rate (bpm)", xlab = "time", group = "biometrics")%>%
+        dySeries("V1", label = "Heart Rate (bpm)") %>%
+        dyRangeSelector(height = 20) %>%
+        dyOptions(colors = 'red') %>%
+        dyUnzoom() %>%
+        dyLegend(width = 300)
+  })
+```
+  
+ 
+
+If you run the code now and go to the Features tab you will see some user interface stuff, however, you will not see the full dygraph until you have given the app some data to use in the plot. The easiest way to do this is to go to the Data Simulation tab and press the Simulate Data button to create the data. If you go back to the Features tab you will see the dygraph is created.
+
+One stipulation of the dygraphs package is that if time series are going to be used they must be presented to the dygraph command in xts format, created by the xts() constructor function. xts is an extension of the zoo class and package which deals with time series data. The documentation -- found by typing ?xts once the package has been installed -- says "The xts class has one additional requirement, the index must be a time-based class. Currently supported classes include: ‘Date’, ‘POSIXct’, ‘timeDate’, as well as ‘yearmon’ and ‘yearqtr’ where the index values remain unique."
+
+As has been said, time can be a very tricky thing to work with and often needs special classes. The Tidyverse package lubridate is an attempt to make things a little easier, but we do not adopt that approach here, but lubridate is certainly an approach that you should consider. Here we opt for a POSIX form of data representation, using the POSIXct class with the as.POSIXct() function. 
+
+The first block of code above does some tidying to ensure their is some output from the data_HR_sim() before proceeding. The second block does some data wrangling using the dplyr package to get things into shape. It takes the data provided by data_HR_sim() and changes it to create a data frame with four variables time, value, biometric, and time_date. It retains the original numeric time data as time, changes the Heartrate variable to value (for reproducible code reasons) and gives it a label of HR in another variable. Finally the last line of wrangling code creates a POSIX compatible time variable using the mutate command:
+
+```{r eval=FALSE}
+mutate(time_date = as.POSIXct(as.numeric(as.character(time))/1000, origin = "1970-01-01", tz="Europe/London"))
+```
+
+POSIX stands for Portable Operating System Interface and was an attempt in the 1980s to unite and create some standards that were compatible across all of the various UNIX platforms. Originally the UNIX platforms would have been things like HP-UX, Solaris, AIX, and Xenix, but now also include Linux and MacOSX, and BSD -- sometimes known as UNIX-like platforms. Unix time which is also known as POSIX time or UNIX Epoch time is the system used in these kinds of operating systems to describe time. In a nutshell it is the number of seconds that have elapsed since 00:00:00 Thursday, 1 January 1970, Coordinated Universal Time (UTC), minus leap seconds. Current Unix time as of writing this is 1550500365. You can find out the current UNIX time for reading this at www.unixtimestamp.com
+
+This is a good system but sometimes the numbers are very unwieldy. However, now you will understand, at least a bit, the reason for the as.POSIXct() function, and you should now be a little bit wary about the perils of time series data.
+
+When you have placed the code in the app, run it and see what happens. Play with the sliders in the dygraph to see some of the benefits that come with using this package, this is the interactivity that is allowed by the combination of dygraph and Shiny.
+
+## Exercise 5
+
+Once again the Electrocardiogram feature is much more complicated but you can look through it in your own time and see what differences there are. The GSR feature is also more complicated. However the Breathing rate and skin temperature are very similar to the heart rate. Can you attempt to recreate these features using the heart rate as a template.
+
+You can see the full set of features if you load the Physio_dash_features_full.R file and run the app.
+
+## Exercise 6
+
+The Features tab was all about taking a deeper dive into the data on an individual level. The biometrics tab seeks to try and combine the data for a view of the different data streams all at the same time.
+
+Open the Physio_dash_biometrics1.R file to use in this excercise.
+
+If you run the app in this file you will see that within the Biometrics sidebarPanel tab we are presented with three further tabs. Biometrics, Descriptives and Scores.
+
+The first tab "Biometrics" is designed to do something very similar to the features dygraphs, but this time it combines the data into a single dygraph. We will set this code up now. The data wrangling work is done in the data_biometric() reactive function shown in the code chunk below. The data this time uses the zoo class rather than the xts class for the time series data. The merge.zoo() command makes it easy to put different timeseries pieces of data together provided they have the same time index. Then the na.approx command from the zoo package allows the interpolation of missing data points. The variable names are renamed to make it clear that these are the zoo versions and the resulting data is returned. The code is given below:
+
+```{r eval=FALSE}
+  data_biometric <- reactive({
+    data_HR_zoo <- zoo(data_HR()$value, order.by = data_HR()$time_date)
+    data_BR_zoo <- zoo(data_BR()$value, order.by = data_BR()$time_date)
+    data_ST_zoo <- zoo(data_ST()$value, order.by = data_ST()$time_date)
+    data_SCL_zoo <- zoo(data_GSR()$SCL, order.by = data_GSR()$time_date)
+    data_SCR_zoo <- zoo(data_GSR()$SCR, order.by = data_GSR()$time_date)
+    data_HF_zoo <- zoo(data_HRVHF()$value, order.by = data_HRVHF()$time_date)
+    #################################################
+    data_biometric <- merge.zoo(data_HR_zoo,data_BR_zoo,data_ST_zoo,data_SCL_zoo,data_SCR_zoo,data_HF_zoo)
+    data_biometric <- na.approx(data_biometric)
+    colnames(data_biometric) <- c("HR","BR","ST","SCL","SCR","HRV-HF")
+    return(data_biometric)
+  })
+  
+  output$plot_biometric <- renderDygraph({  
+    custom_palette <- c("red","blue","orange","green","darkgreen","purple")
+    dygraph(data_biometric()) %>% 
+      dyRangeSelector() %>% 
+      dyOptions(colors = custom_palette) %>%
+      dyLegend(width = 500)
+  })
+```
+
+The second code block deals with the graph. Again a dygraph is used in a very similar way to the Features tab. Insert the code in the app just below the the Biometrics tab section comment around line 763 and see if you can get it to run.
+
+## Exercise 7
+
+Open the Physio_dash_biometrics2.R file to use in this excercise.
+
+In the next tab in the Biometrics section the "Descriptive" tab the plot presents the time series together in a series of faceted plots. Once again a reactive function is used for data wrangling. This time it is the data_descriptive() function. This gathers together the relevant data and returns it. Then a simple renderPlot function provides the output from a ggplot2 command to the UI. The ggplot uses a facet_wrap to present the graphs in a faceted style for easy comparison of the six time series.
+
+```{r eval=FALSE}
+  data_descriptive <- reactive({
+    data_HR <- data_HR()
+    data_HRVHF <- data_HRVHF()
+    data_BR <- data_BR()
+    data_ST <- data_ST()
+    data_SCL <- data_GSR() %>%
+      select(time,SCL,time_date) %>%
+      mutate(biometric = "SCL") %>%
+      dplyr::rename(value = SCL)
+    data_SCR <- data_GSR() %>%
+      select(time,SCR,time_date) %>%
+      mutate(biometric = "SCR") %>%
+      dplyr::rename(value = SCR)
+    data_descriptive <- rbind(data_HR,data_HRVHF,data_BR,data_ST,data_SCL,data_SCR)
+    return(data_descriptive)
+  })
+  output$plot_descriptive <- renderPlot({
+    ggplot(data=data_descriptive(),aes(x=time_date, y=value))+
+      geom_line()+
+      facet_wrap(~biometric, scales = "free")
+  })
+```
+
+Place the code in the file beneath the descriptive plot comments around line 787. This can take some time to load and you will see the advatage of telling the user that the data is loading. You will of course need to give the app some simulated data to make this work.
+
+## Exercise 8
+
+Finally there is a section at the end that you can see if you open the full Physio_dash.R app. This carries out generalized additive models (GAMs) on the data and presents the EDF for each of these models, that is the estimated degrees of freedom. This is presented as an example of how to use the renderValueBox() function to create an infographic style display, and in particular how you can extract summary statistics and present them in a best manner.
+
+Have a look through the code and think whow you might do this if you were to use a linear model using the lm() function rather than the gam() function. The gam() function requires the mgcv package, but the lm() function is available in base R. 
+
+The models in this code are actually the mixed effects model version of gams, they use the gamm() function. This is a more complicated style of regression model that allows us to incorporate correlations in the data into the model. This is useful where the independence assumptions of a regression are violated, we can bring them into the model as an approach to dealing with that violation. As these are time series data we have to be aware of autocorrelation and these gamm models allow us to deal with these issues at least to some extent. I put this here as an aside in case you are wondering what the gamm() function is, a fuill discussion is beyond the scope fo the current exercises.
+
+
+
