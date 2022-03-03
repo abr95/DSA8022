@@ -33,7 +33,7 @@ In the classic slope the equation $y$ is given by the value of $x$ times the $m$
 theme_set(theme_grey(base_size=18))
 ggplot(data=data.frame( x=c(1,2),y=c(1,2) ), aes(x=x,y=y)) + 
   #geom_point(shape = 1) +
-  geom_abline(intercept = 0, slope = 1.55, col = "red") +
+  geom_abline(intercept = 0, slope = 0.35, col = "red") +
   geom_hline(yintercept = 0) +
   geom_vline(xintercept = 0) +
   labs(title = "y = mx + c", subtitle = "slope (m) = 1")
@@ -45,8 +45,8 @@ Play around with changing the intercept to get different values in the plot belo
 
 ```{r}
 ggplot(data=data.frame( x=c(1,2),y=c(1,2) ), aes(x=x,y=y)) + 
-  #geom_point(shape = 1) +
-  geom_abline(intercept = 0.025, slope = 1, col = "red") +
+  geom_point(shape = 1) +
+  geom_abline(intercept = 0.25, slope = 1, col = "red") +
   geom_hline(yintercept = 0) +
   geom_vline(xintercept = 0) +
   labs(title = "y = mx + c", subtitle = "intercept = 0.25")
@@ -87,7 +87,7 @@ ggplot(data=linearRegression1, aes(x=Time, y=Skill)) +
   geom_point(colour = "red") +
   geom_point(aes(y = predicted), shape = 1) +
   geom_segment(aes(xend = Time, yend = predicted), alpha = .5) +
-  geom_text(aes(y = predicted+(residuals/2), label = paste0("", round(residuals, 1), "")), nudge_x = 0.45, size=2.5) + 
+  geom_text(aes(y = predicted+(residuals), label = paste0("", round(residuals, 1), "")), nudge_x = 0.75, size=2.5) + 
   #geom_abline(intercept = 45.053, slope = 0.8713077) + 
   geom_smooth(method = "lm", fill = NA)
 ```
@@ -170,7 +170,7 @@ ggplot(data=curveData, aes(x=x, y=y)) +
   geom_text(aes(y = z+((y-z)/2), label = paste0("", round((y-z), 1), "")), size=2.5)
 
   print(sum((y-z)^2)) # the sum of squares of the residuals against the true model, the sine wave
-  #sum(randomError^2)
+  sum(randomError^2)
 ```
 
 As yet we have not fitted a GAM model to see if it does better than the linear model. We can do a quick cheat to get ourselves a smooth as ggplot has a smooth function built in. Changing the geom_smooth method to auto chooses a loess method if there are less than 1000 observations or a GAM if there are more than 1000 observations. Here we see a loess smooth, which stands for locally estimated scatterplot smoothing and is a topic you can look up yourselves--it provides a smooth but is not quite as sophisticated as a generalized additive model.
@@ -212,7 +212,7 @@ We can simply plot the GAM to see how well it did in estimating our true model. 
 In this plot command residuals = TRUE tells the plot to include the data points of the residuals (these are partial residuals), se = FALSE turns off the variability bands (these are 95% confidence intervals determine in a pointwise way), rug = FALSE turns off the data points being placed on the x axis, pch chooses the shape of the points and cex chooses their size. PLay around with the values of these variables to see what they do. Try the other arguments that are commented out.
 
 ```{r}
-plot(model3, residuals = TRUE, se=TRUE, rug=FALSE, pch = 1, cex = 0.5) # shade = TRUE, shade.col = "rosybrown2"
+plot(model3, residuals = TRUE, se=TRUE, rug=FALSE, pch = 1, cex = 1, shade = TRUE, shade.col = "rosybrown2")
 ```
 
 
@@ -225,7 +225,7 @@ curveData$residuals <- residuals(model3) # Save the residual values
 ggplot(data=curveData, aes(x=x, y=y)) + 
   geom_point() + 
   geom_point(colour = "red") +
-  #geom_smooth(method = "lm", se = FALSE, size = 1) +
+  geom_smooth(method = "lm", se = FALSE, size = 1) +
   geom_path(aes(x=x, y=predicted), colour = "blue") +
   geom_point(aes(y = predicted), shape = 1) +
   geom_segment(aes(xend = x, yend = predicted), alpha = .5) +
@@ -247,7 +247,7 @@ Here we can see that this model has 9 coefficients and an intercept parameter. W
 gratia was written to bring the worlds of the tidyverse and the GAMs from mgcv together.
 
 ```{r}
-bs <- basis(s(x), data = curveData)
+bs <- basis(s(x, bs = "cs"), data = curveData)
 draw(bs)
 ```
 

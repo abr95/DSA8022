@@ -18,6 +18,7 @@ gam.check(mod1, pages=1)
 
 mod2 <- gam(valence ~ s(time, k=15), data=Study1F03b)
 
+
 summary(mod2)
 
 coef(mod2)
