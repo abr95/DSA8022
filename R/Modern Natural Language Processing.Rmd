@@ -16,66 +16,39 @@ The first step in this process is to create a Python virtual environment that we
 
 The reticulate R package helps us do this, it provides an interface between R and Python and allows us to use Python within an R environment. The reticulate package is developed and maintained by the core RStudio team and therefore has good integration with RStudio. We need to load it into R.
 
-```{r installreticulate}
-if(! "reticulate" %in% installed.packages()){
-         install.packages(reticulate, dependencies = TRUE)
-  } else {
-      print("Already Installed")
-  }
-require(reticulate)
-```
 
 Once we have reticulate installed we can use its functions. Outside of R we can check what version of Python is being used by your computer using the Sys.which() base R function. 
 
-```{r pythonSystem}
-Sys.which("python")
-```
-
 If you would like to change this to a different version of python you can use the use_python() function from the reticulate package.
 
-```{r}
-#reticulate::use_python("/usr/local/bin/python")
-```
-
 We can check further information about the version of Python using the py_config() command.
-
-```{r}
-reticulate::py_config()
-```
 
 The Hugging Face community recommends using a virtual environment for working with its models, therefore our first step will be to enable this.
 
 # Create a Virtual Environment in MacOSX and Linux
 In the environment pane click on the files tab and then the more drop down menu. Select the option "Open New Terminal Here" this will change the console pane to a terminal open in the projects working directory provided that you have not moved out of it. 
 
-Type
+Type ...
 
-```{bash}
-ls -a 
+THIS WILL ASK IF ITS OK TO INSTALL MINICONDA - IT IS!
+
+```{python}
+%pip install numpy matplotlib pandas
 ```
 
 to list all the files in the environment.
 
-If you have installed Anaconda type:
-
-```{bash}
-conda create --prefix ./envs python=3.9 numpy matplotlib pandas 
-# tensorflow transformers datasets we still need to install these modules. 
-```
-
-Then type:
-
-```{bash}
-conda activate ./envs
-which python
-```
 
 There is debate about mixing conda installs and pip installs of python. The Anaconda documentation says that it can be done but many wise Stackexchange folks say not to do it. Anaconda is a multiplatform system seeking to allow Python and R to work together much as we see in RStudio, however Anaconda as the name suggests has its roots in Python, where RStudio obviously has its roots in R. I suspect if you keep the conda environment solely to python you can get away with pip installs. We need to install three more packages and I found it difficult to get these to install using the conda install method. So I have resorted to pip. But this is a warning that there may be problems introduced if the environment is to get more complex. 
 
-```{bash}
-pip install tensorflow
-pip install transformers
-pip install datasets
+```{python}
+%conda install pytorch
+%conda install cudnn
+%conda activate
+%pip install numpy matplotlib pandas
+%pip install tensorflow-gpu
+%pip install transformers
+%pip install datasets
 ```
 
 As a final step we can create a permanent file that will tell RStudio where to find Python when we open the project. Open a text file and type or copy
@@ -96,6 +69,9 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 import transformers
 import datasets
+
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+
 ```
 
 Now that we have imported our modules we need to get a few things in place before we can make our new Transformer model. Currently there are many pre-trained models that we can can use as a base on which we later train our model the most famous of these are the BERT models developed at Google. Bert stands for Bidirectional Encoder Representations from Transformers, when these models were first proposed they were a big improvement on the LSTM (Long Short Term Memory - once again borrowing from human cognition theory) models that were dominant at the time. They added a few innovative concepts, the most important of these was the idea of attention. This allowed more exploration of the context surrounding a given word or token and allowed the model to look for context in both directions which is what the bidirectional part of the name means. The attention innovation allowed certain words in the current context to have greater emphasis or to be considered more important to the context than other words--the model could pay more "attention" to the more relevant words. In some ways this actually took these models back a step towards more bag of words kind of thinking as position information was not explicit within the models and they could look in both directions. They needed a way to put this information back in to the models while retaining the ability to highlight important words in the current context. A second innovation that overcame this difficulty--although perhaps not in a way that human reading would do so--was to encode word position explicitly through a kind of positional encoding hack; a hack that used sine and cosine waves to create a vector that would allow word or token positions to be added to the model. This makes the positional coding available to the model as information that can be incorporated as it learns. The third main innovation was multi-head attention which allowed more than one use of the attention mechanism to be used, eight attention heads were used in the original model.
@@ -206,11 +182,11 @@ We can see here that from using the sample_train_dataset.features command that w
 We can move this dataset into R if you are more familiar with that. 
 
 ```{r}
-rDataset <- py$sample_train_dataset[0:999] # remember python is zero indexed and R is not.
-summary(rDataset)
-str(rDataset, max=1)
-print("This is the Positive review of the Second film")
-rDataset$text[2]
+#rDataset <- py$sample_train_dataset[0:999] # remember python is zero indexed and R is not.
+#summary(rDataset)
+#str(rDataset, max=1)
+#print("This is the Positive review of the Second film")
+#rDataset$text[2]
 ```
 
 We now have a list of the data in R we could do a number fo things with this. We cannot directly convert it into a dataframe because the dimensions are wrong. Each of the attention_mask, input_ids, token_type_ids have 512 items, text is a character vector with the actual words and label has a single integer 0 for negative and 1 for positive. I do this to show you how you can move data from python to R quite easily, however our datasets here are a bit unforgiving due to their size and shape so some wrangling would be needed to make them into nice dataframes. The reticulate website has a table showing the various type conversions that are the default ways to move data from python to R (https://rstudio.github.io/reticulate/)
@@ -224,7 +200,8 @@ We use the TFAutoModelForSequenceClassification AutoModel class to create our mo
 ```{python}
 from transformers import TFAutoModelForSequenceClassification
 
-model = TFAutoModelForSequenceClassification.from_pretrained("bert-base-cased", num_labels=2)
+with tf.device("/CPU:0):
+  model = TFAutoModelForSequenceClassification.from_pretrained("bert-base-cased", num_labels=2)
 
 type(model)
 ```
@@ -258,7 +235,6 @@ model.compile(
     loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     metrics=tf.metrics.SparseCategoricalAccuracy(),
 )
-
 model.fit(train_tf_dataset, validation_data=eval_tf_dataset, epochs=3)
 ```
 

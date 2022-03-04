@@ -46,27 +46,27 @@ ui <- dashboardPage(skin = "yellow",
                                                 HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/-MGKr6jJPhA" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
                                                 ),
                                        tabPanel(title=tagList(shiny::icon("cloud-download"), "Joy"),
-                                                HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/rjyvgamJtLs" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
+                                                HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/HXH6vRkppmw" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
                                                 HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/oj-RGpswO-s" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
                                                 ),
                                        tabPanel(title=tagList(shiny::icon("cloud-download"), "Surprise"),
-                                                HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/rjyvgamJtLs" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
+                                                HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/r5ta5RgeQx4" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
                                                 HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/MEKbeS5Wook" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
                                                 ),
                                        tabPanel(title=tagList(shiny::icon("cloud-download"), "Fear"),
-                                                HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/rjyvgamJtLs" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
+                                                HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/_eeXh4cx3ig" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
                                                 HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/Bx4wJCjpkkM" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
                                                 ),
                                        tabPanel(title=tagList(shiny::icon("cloud-download"), "Disgust"),
-                                                HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/rjyvgamJtLs" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
+                                                HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/SlN6fBjV3No" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
                                                 HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/vMMAa1SLiLU" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
                                                 ),
                                        tabPanel(title=tagList(shiny::icon("cloud-download"), "Curiosity"),
-                                                HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/rjyvgamJtLs" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
+                                                HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/fBSIzT_O5SU" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
                                                 HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/3rWFqiQe-E8" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
                                                 ),
                                        tabPanel(title=tagList(shiny::icon("cloud-download"), "Boredom"),
-                                                HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/rjyvgamJtLs" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
+                                                HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/HkxXnrMYQk0" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'),
                                                 HTML('<iframe width="320" height="240" src="https://www.youtube.com/embed/ysvZzwVEOqw" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>')
                                                 )
                                        )
@@ -93,7 +93,7 @@ ui <- dashboardPage(skin = "yellow",
 server <- function(input, output,session) {
   target_labels <- c("joy","fear","disgust","sadness","anger","surprise")
   all_raw <- isolate(
-    readr::read_csv(here::here("./data/all_raw.csv"))
+    readr::read_csv(here::here("R/data/all_raw.csv"))
   )
   all_threshold <- reactive({
   })
