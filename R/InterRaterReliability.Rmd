@@ -1,0 +1,439 @@
+---
+title: "InterRaterReliability"
+author: "Gary McKeown"
+date: "07/02/2020"
+output: html_document
+bibliography: bibliography.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(irr)
+library(kableExtra)
+```
+
+## Supervised Machine Learning
+
+One of the major types of machine learning is supervised machine learning. This is the kind of learning that takes place when we get an algorithm to learn the relationship that exists between some set of inputs and outputs. These inputs and output pairs are known as a training set of data; the goal is typically to provide the training set of data and get the algorithm to learn the relationship and then when novel data is provided as an input to the algorithm it can make a prediction or classify  the new data on the basis of the already learned training set. 
+
+### Ground Truth
+There many kinds of inputs and outputs that can be created and trhe creation of training sets is itself a really important part of machine learning. It typically rpovides what is known as the "ground truth" on which learning is based. We must be careful not to confuse this "ground truth" with actual truth, it is almost never the actual truth. Ground truth is an assumption of the truth and that in turn typically depends on many theoretical assumptions that have been made when collecting the material for the training set. All  of these assumptions can be wrong even with the best of intentions. This has the consequence that a poorly defined and conducted training set of data means the algorithms that are developed will not function well when given new data from the real world as it will not perform according to our badly defined "ground turth". Typically a training set is one that has been labelled--sometimes called annotated--often known simply as a labelled training set and if we are going to understand how a supervised machine learning algorithm performs then we must understand the nature of the labelled training set and how it was derived.
+
+### Test sets
+A wise thing to do when you have created a training set is to reserve some of it as a test set. The reason we do this is in the name reserving part of our labelled data as a test set allows us to test the extent to which the algortihm we have can do its job, how well it has learned what we have given it to learn. If we have a new set of previously unused data it is really important to find out how well it is doing its job. Another really important function of having a training set is thast it helps to stop us overfitting an algorithm to a particular set of data; this is training an alogorithm in a way that means it works really well on the trinsing set that it has been given, but the functions that we have extracted from it do not work well on new data, that is, they do not generalize to a new set of similar data. If we have a test set then we can check how likely it is that we have overfitted our data to the training set. Labelled data is usually expensive, labour intensive and takes a lot of time to create, humans are oftne the people who create labelled data sets and in effect the machine learning algorithms are trying to copy the human behaviour and set of decesion processes that went into labelling the data. As it is so expensive to create training sets and machine learning performs better with large quantitied of data, there is often a temptation to use as much of the labelled data as possible to create the training set and minimise the amount of data used for a test set, this is an error and should be avoided. The problem is that it will almost certainly lead you to create an algorithm that is overfitted and then is now use when it comes to operating on new data. Choose the proportions of test and training data wisely.
+
+Testing on a test set allows you to improve the accuracy of your algorithm. How well your algorithm performs on the the test set provides you with an error metric that you can use to improve your algorithm by changing the parameters or adding components to more complex models.
+
+## Types of labelling
+Due to the expensive nature of labelling; the human labour intensive involvment and AI's voracious appetite for more data various options for the creation of labelled data have arisen. As an aside labelling often goes by a number of terms that all mean the same thing; labelling, annotating, rating and coding all mean someone observing data and 
+
+### Expert human rating using a coding scheme
+Probably the gold standard of labelling is to use well trained experts with a well defined coding scheme. This is often the kind of work that is done in university training sets where PhD students have the time to create the lables or annotations. Often there are two three or four annotators, with PhD students helping each other or recruiting students who want experience. Due to the instensity of this work large neumbers of raters are not normally possible. This is also sometimes used within companies for similar reasons you can keep tight control of the labelling but it limits the number of raters you can obtain and involves taking much employee time.
+
+### Naive raters using a coding scheme
+One way to get more raters is to use naive raters who do not need to be trained in as much depth. This typically requires a simple coding scheme and payment for the recruits. This is useful as control can be retained over the performance of the raters, but it takes a lot of organisation and teaching of the raters.
+
+### Crowdsourcing
+Another option that is very popular is crowdsourcing. This is using the web and internet to get access to large numbers of raters. This can be done in two ways. The first is setting up a website and trying to encourage people to participate by whatever means. An example can be seen in this website where gamification is being used to get people to do some labelling on sounds (https://www.ihearu-play.eu). The other alternative is to use a paid crowdsourcing site such as Amazon Mechanical Turkhttps://www.mturk.com), Prolific Academic (https://www.prolific.co), or Figure Eight (https://www.figure-eight.com/). These can be very useful but come with many issues. Typically the tasks that can be used in this respect need to be quite simple and there is very limited control over the people who particpate. 
+
+## Coding Schemes
+Normally when humans are labelling data there is a coding scheme of some description. Depending on the type of human labelling you are using this can be very simple or very complex. This is the thing that tries to capture the behaviour that is being examined. A simple example of a coding scheme would be transcription into the language that is being spoken, the annotations would ethen be the words and some sort of punctuation. This is not as simple as it might seem as choices need to be made concerning which punctuation is appropriate and the styles of interpretation that are required. These are questions that occupy stenographers and parliamentary reporters whose job it is to take spoken language and move it to text. You could go further and try and include paralanguage and that would take you into the world of Jeffersonian transcription. A coding scheme could concentrate on visual aspects rather than auditory aspects and could try and code gestures, or smiles, or eye gaze. The could be well established schemes like the Facial Action coding Scheme (FACS) or they could be made up for any given project. Other examples further from my field might include humans who have to do cell classification. If you can imagine the people who look down microscopes to classify cells as wither being cancerous or not cancerous; these people have a variety of characteristics they use to distinguish the cells, this is the coding scheme, and there is a lot of room for subjective jugdment. As a consequence we need to be able to check how weel each of the subjective decision makers are in agreement to give some idea of the consistency of the coding scheme and a measure of how objective its use is. There are many options in coding schemes and they all embed assumptions about the nature of the world that will be contained in the learning of any algorithm that is given a labelled data set as its training input.
+
+Coding can be done in two main ways, there can be discrete (also called categorical or nominal) coding or there can be continuous (also called ordinal, interval, or ratio variables) coding. In discrete coding it is a classification, that is, making the decision about the nature of a thing and what type of thing it is. When we have videos it is often saying whether a behaviour is happening or not at a given time, for example, is this person smiling at this point in time in a video. The data becomes a binary yes or no in a time series data set. 
+
+## Inter-rater reliability
+When we have more than one rater using a coding scheme to create a labelled training set we have a problem. How do we know they are all following the coding scheme in the same way? How do we know they are making the correct judgments? There is a lot of subjectivity that exists in any coding scheme. The better the coding scheme the less room there is for subjective interpretation, but there would still be subjectivity and differences between two people transcribing a piece of spoken language into its written form so we need to have ways of checking this. The various ways that we can check if two or more poeple are using a coding scheme in the same way is called inter-rater reliability, sometimes abreviated to IRR.
+
+## Measurement Error
+In most of statistics we can think of a relationship between the thing that we measured (the observed scores) and the thing that we want to measure (true score) in a realtionship that acknowledges the fact that we cannot measure things perfectly, there is always some form of measurement error. Hallgren [-@Hallgren2012ComputingIR] highlights this nature of measurement error in is great paper on inter-rater reliability as a way to understand what we are doing when we compute it. We are seeking to understand part of the measurement error. He gives the classic account
+
+$$
+Observed\;Score = True\;Score + Measurement\;Error
+$$
+
+which in more mathematical terms would be:
+
+$$
+Var(X)=Var(T)+Var(E)
+$$
+which means the variance (the variability in the scores we observe) can be tought of in a useful way by realising that it is made up of the actual true score that we wat to observe, and the error, that is, the problems that we have in measuring things precisely. Hallgren [-@Hallgren2012ComputingIR] recognises that a part of the measurement error that we can try and quantify is the "instability of the measuring instrument when measurements are made between coders" and this is what interrater reliability attempts to understand.
+
+We could couch this in terms of how big is the measurement error and then we would want the smallest possible score, but the way inter rater reliability scores are typically set up is as an estimate of how much of the true scores we are getting. when we take that measurement into account. As Hallgren [-@Hallgren2012ComputingIR] states it "an IRR estimate of 0.80 would indicate that 80% of the observed variance is due to true score variance or similarity in ratings between coders, and 20% is due to error variance or differences in ratings between coders."
+
+There are many ways in which we can examine inter-rater reliability and they vary in complexity, in the kind of data that they can assess, and in the nature of the task that is being assessed.
+
+### Percentage Rater Agreement & Cohen's Kappa
+The first and most simple type of inter rater agreement is percentage rater agreement which captures the amount of times two rater agree in a very simple sense. This is an intuitive way of thinking about inter rater reliability and is sometimes used, but it should not be used for reasons we will come to. This is the number of observations that people agree on divided by the total number of observations.
+
+$$
+Percentage\;Agreement = \frac {number\;of\;observations\;agreed\;by\;the\;raters}{total\;number\;of\;observations}
+$$
+
+This works easily for categorical data but not so well for continuous data where some sort of agreement bin or interval is needed (in effect when you choose an interval that you find satisfactory you are turning your continuous data into a form of categorical data). However, there is one big caveat with this approach, it does not take chance agreement into account. Chance agreement can be a really big problem if you have a simple classification problem where there are only two categories, there you can imagine that a lot of agreement would occur by chance. We can set up some toy chance raatings to explore this. Imagine a scenario where two raters a re classifying cancer cells as cancerous or not. There are about 1 in every 20 cells is expected to be cancerous a probability of 0.05). We can use the agree() function from the irr R package to tell us how similar they are.
+
+Therefore we need some way to account for chance agreement between our raters. We do that using Cohen's Kappa. Kappa runs from -1 to +1 with zero meaning no agreement, 1 meaning perfect agreement and negative numbers meaning that there is systematic disagreement. Cohen's Kappa takes into account the chance agreement. In the data below I have made two random binomial variables, that is, a vector of 100 1s and 0s that are 1 with a probability of 0.05. You can see the difference in the R code below, run it a few times and have a look at the differences between percentage agreement and Kappa, remembering that these are random variables. Change the probability of 1s and 0s and run it again to see what that does to the numbers. You should see that Cohen's Kappa deals with the randomness in a better way. We do not want our raters to have good inter rater reliability scores if they are essentially just flipping coins to decide.
+
+```{r}
+x <- rbinom(n=100, size=1, prob=0.5)
+y <- rbinom(n=100, size=1, prob=0.5)
+ratings <- cbind(x,y)
+agree(ratings)
+kappa2(ratings)
+```
+
+There are many other variations on Cohen's Kappa, things that improve the statistics and allow more than two raters. These can be seen in Hallgren [-@Hallgren2012ComputingIR].
+
+### Intra Class Correlation
+
+Cohen's Kappa is good but limited to cases where we have categorical data and two raters. This is often not the case, and if we want to have faith in ourt ground truth we would much rather have it coming from more than two raters. For cases where we want to use continuous data and more than two raters the intra class correlation (ICC) is the appropriate statistic. Well perhaps that should be statistics as there are a variety of ICCs. Shrout and Fleiss [-@ShroutFleiss1979] who wrote the seminal paper on ICCs suggested that 6 different ways of calculating them were appropriate depending on the characteristics of the data and the goals of the researchers. These criteria are important to understand.
+
+One of the things to consider in ICC is the spread of ratings across the whole data set. As coding is so expensive and it can be tiring it is oftent the case that sets a partially coded by different people. One option is full coding where every rater coded every thing that needs to be coded. Sometimes one rater has much more time available than others--it is ususally their project--in that case a subset of the material is coded by other raters to ensure that the main rater is coding according to the coding scheme, often 10% may be coded by others. Sometimes--often in online rating with many naive raters--different subsets of material are rated by different people in a way that means no single rater rates all the data. ICC can handle all of these situations but you need to be aware of what style of rating you are using.
+
+### Fully Crossed -- Two Way model
+
+```{r}
+Rater1 <- c("X", "X", "X", "X", "X", "X")
+Rater2 <- c("X", "X", "X", "X", "X", "X")
+Rater3 <- c("X", "X", "X", "X", "X", "X")
+
+fullyCrossed <- rbind(Rater1, Rater2, Rater3)
+fullyCrossed <- as.data.frame(fullyCrossed)
+names(fullyCrossed) <- c("Subject1", "Subject2", "Subject3", "Subject4", "Subject5", "Subject6")
+knitr::kable(fullyCrossed, caption = 'Fully Crossed Design', align='cccccc') %>%
+  kable_styling(full_width = F) %>%
+  column_spec(1, bold = T, border_right = T) %>%
+  column_spec(2:7, background = "white")
+```
+
+### Not Fully Crossed -- One Way model
+
+```{r}
+Rater1 <- c("X", "X", "", "", "", "")
+Rater2 <- c("X", "X", "", "", "", "")
+Rater3 <- c("", "", "X", "X", "", "")
+Rater4 <- c("", "", "X", "X", "", "")
+Rater5 <- c("", "", "", "", "X", "X")
+Rater6 <- c("", "", "", "", "X", "X")
+
+notFullyCrossed <- rbind(Rater1, Rater2, Rater3, Rater4, Rater5, Rater6)
+notFullyCrossed <- as.data.frame(notFullyCrossed)
+names(notFullyCrossed) <- c("Subject1", "Subject2", "Subject3", "Subject4", "Subject5", "Subject6")
+knitr::kable(notFullyCrossed, caption = 'Not Fully Crossed Design', align='cccccc') %>%
+  kable_styling(full_width = F) %>%
+  column_spec(1, bold = T, border_right = T) %>%
+  column_spec(2:7, background = "white")
+```
+
+
+### Generalizing to a single rater -- One Way model
+
+```{r}
+Rater1 <- c("X", "X", "X", "X", "X", "x")
+Rater2 <- c("", "", "", "", "X", "X")
+Rater3 <- c("", "", "", "", "X", "X")
+
+single <- rbind(Rater1, Rater2, Rater3)
+single <- as.data.frame(single)
+names(single) <- c("Subject1", "Subject2", "Subject3", "Subject4", "Subject5", "Subject6")
+knitr::kable(single, caption = 'A Single Rater does all, subset by multiple raters', align='cccccc') %>%
+  kable_styling(full_width = F) %>%
+  column_spec(1, bold = T, border_right = T) %>%
+  column_spec(2:7, background = "white")
+```
+These have important implcations. In a fully crossed design the ICC can take into account systematic deviations between the coders because it has that information. In the not fully corssed design there is not enough information to tell this and so this systematic deviation must be left out which leads to the use of a different equation for calculating ICC. When it is fully crossed a 2 way model is the one we choose, when it is not fully crossed the we choose a one way model.
+
+A second major choice that must be made concerns how the ratings should be interpreted. Sometimes we are interested in absolute values, that is, that each of the raters get the right value correct. If we were interested in the intensity of smiles and have specified criteria in the coding scheme that say what each intensity of a smile should look like then we would need raters to get the same ratings for each intensity of a smile. However perhaps we are not interested in absolute values and only care that the coders go up and down in their ratings in the same way but it does not matter if the exact numbers are correct, then we are interested in their consistency of ratings. This might happen if we were to use a 10 point scale to get people to rate something and one rater starts to use the scale at the 3 and the other starts at seven, but they go up and down in the same way. Absolute reliability would be low yet consistency would be high.
+
+A third choice must be made concerning the way people set up the coding. IN the fully crossed deign above we can use the average of all the raters to calculate our ICC, we have enough information to use this and it will allow more confidence and a higher ICC as we have more of the relevant data. Whereas, in the last case where we are using a subset of ratings to justify the ratings of a single rater who did the rest of the ratings by themselves then we have to say it is a single measures which is a more conservative calculation.
+
+The fourth thing to consider does not influence our choice of equation to calculate ICC but is important in how we interpret the results. We may want to think about the raters as randomly sampled from a large set of possible raters. The subjects who are being rated are typically assumed to be randomly sampled. Therefore if we wish to generalize to a population of raters from a sample of raters then we would call this random effects becasue both raters and sample are assumed to be randomly sampled from a larger population. If the raters are not assumed to be a sample and we do not want to generalize beyond the set of raters we have to say something about a population of raters then they would be a fixed effect, but we call these models mixed becasue the subjects would still be assumed to be randomly sampled.
+
+These choices allow us to specify the type of ICC we will use and they have a code that goes with them and should be reported in this way ICC(1), this is using the nomenclature from McGraw and Wong [-@McGraw1996] where C equates to consistency and A to absolute agreement. The formula for calculating ICC(1):
+
+### ICC(1)
+$$
+\frac{MS_R - MS_W}{MS_R + (k - 1)MS_W}
+$$
+For this one only I will also add in the more abstract definition of one way model, we will return to this later:
+
+$$
+\frac{\sigma^2_r}{\sigma^2_r + \sigma^2_w}
+$$
+
+
+Should be used when the choices are one-way, random effects, absolute agreement, and single measurements.
+
+We can do an example like this (adapted from the irr package):
+
+```{r}
+r1 <- round(rnorm(20, 10, 4))
+r2 <- round(r1 + rnorm(20, 0, 2))
+r3 <- round(r1 + rnorm(20, 0, 2))
+dataicc1 <- cbind(r1, r2, r3)
+kable(dataicc1, caption = 'ICC(1,1) data', align='ccc') %>%
+  kable_styling(full_width = F) %>%
+  column_spec(1:3, bold = T, border_right = T, border_left = T)
+icc(dataicc1, model="oneway", type="agreement", unit="single")
+```
+
+### ICC(C,1)
+
+ICC(C,1) should be used when the choices are two-way, mixed effects, consistency agreement, and single measures and is calculated with the equation:
+
+$$
+\frac{MS_R - MS_E}{MS_R + (k-1)MS_E}
+$$
+
+We can do an example like this (adapted from the irr package):
+
+```{r}
+r1 <- round(rnorm(20, 10, 4))
+r2 <- round(r1 + 10 + rnorm(20, 0, 2))
+r3 <- round(r1 + 20 + rnorm(20, 0, 2))
+dataiccC1 <- cbind(r1, r2, r3)
+kable(dataiccC1, caption = 'ICC(3,1) data', align='ccc') %>%
+  kable_styling(full_width = F) %>%
+  column_spec(1:3, bold = T, border_right = T, border_left = T)
+icc(dataiccC1, "twoway", "consistency", "single")
+```
+
+### ICC(A,1)
+
+ICC(A,1) should be used when the choices are two-way, random effects, absolute agreement, and single measures and is calculated with the formula:
+
+$$
+\frac{MS_R - MS_W}{MS_R + (k - 1)MS_E + \frac{k}{n}(MS_C - MS_E)}
+$$
+
+We can do an example like this (adapted from the irr package):
+
+```{r}
+data(anxiety)
+dataiccA1 <- anxiety
+kable(dataiccA1, caption = 'A Single Rater does all, subset by multiple raters', align='cccccc') %>%
+  kable_styling(full_width = F) %>%
+  column_spec(1:3, bold = T, border_right = T, border_left = T)
+icc(dataiccA1, model="twoway", type="agreement", unit="single")
+```
+
+
+
+### ICC(k)
+
+ICC(k) should be used when the choices are one-way, random effects, absolute agreement, and average measures and is calculated with the formula:
+
+$$
+\frac{MS_R - MS_W}{MS_R}
+$$
+
+We can do an example like this (adapted from the irr package):
+
+```{r}
+r1 <- round(rnorm(20, 10, 4))
+r2 <- round(r1 + rnorm(20, 0, 2))
+r3 <- round(r1 + rnorm(20, 0, 2))
+dataicck <- cbind(r1, r2, r3)
+kable(dataicck, caption = 'ICC(1,k) data', align='ccc') %>%
+  kable_styling(full_width = F) %>%
+  column_spec(1:3, bold = T, border_right = T, border_left = T)
+icc(dataicck, "oneway", "agreement", "average") 
+```
+
+
+### ICC(C,k) - ICC(C,3)
+
+ICC(C,k) should be used when the choices are two-way, mixed effects, consistency agreement, and average measures and is calculated with the formula:
+
+$$
+\frac{MS_R - MS_E}{MS_R}
+$$
+
+We can do an example like this (adapted from the irr package):
+
+```{r}
+r1 <- round(rnorm(20, 10, 4))
+r2 <- round(r1 + 10 + rnorm(20, 0, 2))
+r3 <- round(r1 + 20 + rnorm(20, 0, 2))
+dataiccCk <- cbind(r1, r2, r3)
+kable(dataiccCk, caption = 'ICC(1,k) data', align='ccc') %>%
+  kable_styling(full_width = F) %>%
+  column_spec(1:3, bold = T, border_right = T, border_left = T)
+icc(dataiccCk, "twoway", "consistency", "average")
+```
+### ICC(A,k) - ICC(A,3)
+
+ICC(A,k) should be used when the choices are two-way, random effects, absolute agreement, and average measures and is calculated with the formula:
+
+$$
+\frac{MS_R - MS_E}{MS_R + \frac{MS_C - MS_E}{n}}
+$$
+
+We can do an example like this (adapted from the irr package):
+
+```{r}
+data(anxiety)
+dataiccAk <- anxiety
+kable(dataiccAk, caption = 'A Single Rater does all, subset by multiple raters', align='cccccc') %>%
+  kable_styling(full_width = F) %>%
+  column_spec(1:3, bold = T, border_right = T, border_left = T)
+icc(dataiccAk, model="twoway", type="agreement", unit="average")
+```
+
+$MS_R$ = mean square for rows (BMS in Shrout & Fleiss), $MS_W$ = mean square for residual sources of variance(WMS in Shrout & Fleiss), $MS_E$ = mean square error(EMS in Shrout & Fleiss), $MS_C$ = mean square for columns(JMS in Shrout & Fleiss), $k$ is the number of raters. You can find these equations and a deeper mathematical explanation in Shrout and Fleiss (1979).
+
+## Missing Data 
+
+One issue that can be difficult and common in intra calss correlations is missing data. Thankfully a package has been recently become available on CRAN that helps to deal with this, irrNA does this to cope with randomly missing data. 
+
+
+We can make a rating matrix with missing data as below. Here we have four rows of raters and tweleve rows of subjects.
+
+```{r missingData}
+# this data comes from the examples in the kripp.alpha documentation
+missingData<-matrix(c(1,1,NA,1,2,2,3,2,3,3,3,3,3,3,3,3,2,2,2,2,1,2,3,4,4,4,4,4,
+ 1,1,2,1,2,2,2,2,NA,5,5,5,NA,NA,1,1,NA,NA,3,NA),nrow=4)
+
+missingData %>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)
+```
+
+the irrNA version of icc expects the raters to be the columns and the rows to be the subjects so we can start by transposing the data.
+
+```{r missingDataicc}
+library(irrNA)
+missingDataT <- t(missingData)
+
+output <- iccNA(missingDataT)
+output
+```
+
+We can see the output is not pretty from this package but it does provide us with what we need (the package is relatively recent and it cna take a while for packages to get the nice bells and whistles that make it nice to use). This package takes a different approach to the output from the irr packagge. While the icc() function in the irr package expects us to answer three of the crucial four questions that Hallgren [-@Hallgren2012ComputingIR] mentions. The methodology here is to give us the output for the six options and to get us to choose afterwards which one we want with the nomenclature being
+
+ICC(1)
+
+```{r}
+writeLines("Output from icc in the irr package - ICC(1):\n")
+icc(dataicc1, model="oneway", type="agreement", unit="single")
+
+writeLines("\n\nOutput from the first line of iccNA in the irrNA package - ICC(1):\n")
+iccNA(dataicc1)$ICCs[1,]
+```
+
+ICC(A,1)
+
+```{r}
+writeLines("Output from icc in the irr package - ICC(A,1):\n")
+icc(dataiccA1, model="twoway", type="agreement", unit="single")
+
+writeLines("\n\nOutput from the third line of iccNA in the irrNA package - ICC(A,1):\n")
+iccNA(dataiccA1)$ICCs[3,]
+```
+
+
+ICC(C,1) : dataiccC1
+
+```{r}
+writeLines("Output from icc in the irr package - ICC(C,1):\n")
+icc(dataiccC1, model="twoway", type="consistency", unit="single")
+
+writeLines("\n\nOutput from the fifth line of iccNA in the irrNA package - ICC(C,1):\n")
+iccNA(dataiccC1)$ICCs[5,]
+```
+
+
+ICC(k) - ICC(3)
+
+```{r}
+writeLines("Output from icc in the irr package - ICC(3):\n")
+icc(dataicck, model="oneway", type="agreement", unit="average")
+
+writeLines("\n\nOutput from the second line of iccNA in the irrNA package - ICC(k):\n")
+iccNA(dataicck)$ICCs[2,]
+```
+
+ICC(C,k) - ICC(C,3)
+
+```{r}
+writeLines("Output from icc in the irr package ICC(C,3):\n")
+icc(dataiccCk, model="twoway", type="consistency", unit="average")
+
+writeLines("\n\nOutput from the sixth line of iccNA in the irrNA package ICC(C,k):\n")
+iccNA(dataiccCk)$ICCs[6,]
+```
+
+ICC(A,k)
+
+```{r}
+writeLines("Output from icc in the irr package - ICC(A,3):\n")
+icc(dataiccAk, model="twoway", type="agreement", unit="average")
+
+writeLines("\n\nOutput from the fourth line of iccNA in the irrNA package - ICC(A,k):\n")
+iccNA(dataiccAk)$ICCs[4,]
+```
+
+```{r}
+iccNA(dataiccAk)
+```
+
+
+## Krippendorf's alpha
+
+There is one final measure of inter rater reliability to cover. That is Krippendorf's alpha [@HayesKripp2007]. This is newer and has a strong advantage over icc in onw way but has not caught on and so is not as familiar as the other measures or seen as often in papers unless there is a presumed need for comparison across data types. That is due to its main benefit, which is that it can be used for all kinds of data, nominal, ordinal, interval, and ratio. It is also robust to missing values. However, at least for interval data it is not as flexible as the various types of intra class correlation.
+
+We can conduct a Krippendorf's alpha using the kripp.alpha() command from the irr package like this
+
+
+```{r krippsalpha}
+kable(missingData, caption = "Krippendorf's alpha data", align='cccccccccccc') %>%
+  kable_styling(full_width = F) %>%
+  column_spec(1:12, bold = T, border_right = T, border_left = T)
+# first assume the default nominal classification
+kripp.alpha(missingData, "nominal")
+
+# now use the same data with the other three methods
+kripp.alpha(missingData,"ordinal")
+
+kripp.alpha(missingData,"ratio") 
+
+# finally the interval which is the equivalent of the icc
+kripp.alpha(missingData,"interval")
+kripp.alpha(missingData,"interval")
+
+kripp.alpha(t(dataiccAk),"interval")
+
+
+```
+One of the advantages of Krippendorf's alpha is this ability to apply the same measurement across different forms of data. It can work with interval data in the same way that the icc can work with interval data, but it can also work with nominal, ordinal and ratio style data too. The drawback as mentioned earlier is that it does not have the flexibility offered by the varieties of icc that we can engage in. Krippendorf's alpha when it is applied to the interval data is equivalent to the ICC(1), which is why there was the mention of the abstract definition of ICC1 that is mentioned as the special case Krippendorf's alpha by Hughes [-@hughes2021krippendorffsalpha].
+
+$$
+\frac{\sigma^2_r}{\sigma^2_r + \sigma^2_w}
+$$
+
+ICC(1)
+
+```{r}
+writeLines("Output from icc in the irr package - ICC(1):\n")
+icc(dataicc1, model="oneway", type="agreement", unit="single")
+
+writeLines("\n\nOutput from the first line of iccNA in the irrNA package - ICC(1):\n")
+iccNA(dataicc1)$ICCs[1,]
+
+writeLines("\n\nOutput from kripp.alpha in the irr package:\n")
+# Note that the data format expected by kripp.alpha() is pivoted from that expected by icc. If we have the 
+# data in the right format for icc we can get around this very simply by using base R t() function which
+# stands for transpose, this allows us to transpose the data into the right form expected by kripp.alpha
+dataicc1T <- t(dataicc1)
+kripp.alpha(dataicc1T, method = "interval")
+```
+
+Hughes [-@hughes2021krippendorffsalpha] has produced an R package (krippendorffsalpha) and an accompanying paper recently that explores the possibilities of Krippendorff's Alpha further and generalizes parametric Krippendorff's Alpha to create Sklar’s \omega. I leave that for interested students to pursue further. Hughes [-@hughes2021krippendorffsalpha] package generates Krippendorff's Alpha using a bootstarp methodology.
+
+```{r}
+library(krippendorffsalpha)
+fit.dataicc1 = krippendorffs.alpha(data = dataicc1, level = "interval", verbose = TRUE,
+                              control = list(bootit = 10000, parallel = TRUE, nodes = 3))
+summary(fit.dataicc1)
+```
+
+## References

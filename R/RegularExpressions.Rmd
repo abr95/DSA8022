@@ -1,0 +1,157 @@
+---
+title: "RegularExpressions"
+author: "GaryMcKeown"
+date: "13/02/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(stringr)
+```
+
+## What Are Regular Expressions
+
+A dark art.
+
+Especially in PERL.
+
+But very powerful.
+
+Often they are nearly impossible to decipher.
+
+But what are they?
+
+They are a way to describe a set of strings. They allow us to create patterns that can then be used to search and replace very efficiently. This is really useful in coding and developing and in doing sysadmin work in maintaining computers. Regular expressions are a very old computing technology, having arisen in the 1950s. Unfortunately there are a variety of types regular expressions and they work slightly differently in different computer languages. The different types are called regular expression syntax, two of the most important are the POSIX syntax which is used on UNIX-like operating systems such as MacOS and Linux; the other important syntax is the PERL regular expression syntax. There are lots of commonalities between them, but it is important to realise that things can be different. They are normally shortened to regex.
+
+What does a regular expression look like. One of the most common would be using a wildcard in search for documents in the command line.
+
+/*.txt/
+
+which would match any txt file in a directory, the slashes signify the start and the end of the regex. You can see the dark art aspect if you look at this one which finds any email address
+
+/\b[\w.!#$%&’*+\/=?^`{|}~-]+@[\w-]+(?:\.[\w-]+)*\b/
+
+Try it by going to https://regex101.com and pasting in the text below and the regular expression in the regex bit. You do not need to do the initial and trailing slashes they are already provided for you.
+
+"Trash talking has a long and colorful history of flustering game opponents, and now researchers at Carnegie Mellon University have demonstrated that discouraging words can be perturbing even when uttered by a robot.
+
+The trash talk in the study was decidedly mild, with utterances such as "I have to say you are a terrible player," and "Over the course of the game your playing has become confused." Even so, people who played a game with the robot -- a commercially available humanoid robot known as Pepper -- performed worse when the robot discouraged them and better when the robot encouraged them.
+
+Lead author Aaron M. Roth said some of the 40 study participants were technically sophisticated and fully understood that a machine was the source of their discomfort.
+
+"One participant said, 'I don't like what the robot is saying, but that's the way it was programmed so I can't blame it,'" said Roth, who conducted the study while he was a master's student in the CMU Robotics Institute.
+
+But the researchers found that, overall, human performance ebbed regardless of technical sophistication.
+
+The study, presented last month at the IEEE International Conference on Robot & Human Interactive Communication (RO-MAN) in New Delhi, India, is a departure from typical human-robot interaction studies, which tend to focus on how humans and robots can best work together.
+
+"This is one of the first studies of human-robot interaction in an environment where they are not cooperating," said co-author Fei Fang, an assistant professor in the Institute for Software Research. It has enormous implications for a world where the number of robots and internet of things (IoT) devices with artificial intelligence capabilities is expected to grow exponentially. "We can expect home assistants to be cooperative," she said, "but in situations such as online shopping, they may not have the same goals as we do."
+
+The study was an outgrowth of a student project in AI Methods for Social Good, a course that Fang teaches. The students wanted to explore the uses of game theory and bounded rationality in the context of robots, so they designed a study in which humans would compete against a robot in a game called "Guards and Treasures." A so-called Stackelberg game, researchers use it to study rationality. This is a typical game used to study defender-attacker interaction in research on security games, an area in which Fang has done extensive work.
+
+Each participant played the game 35 times with the robot, while either soaking in encouraging words from the robot or getting their ears singed with dismissive remarks. Although the human players' rationality improved as the number of games played increased, those who were criticized by the robot didn't score as well as those who were praised.
+
+It's well established that an individual's performance is affected by what other people say, but the study shows that humans also respond to what machines say, said Afsaneh Doryab, a systems scientist at CMU's Human-Computer Interaction Institute (HCII) during the study and now an assistant professor in Engineering Systems and Environment at the University of Virginia. This machine's ability to prompt responses could have implications for automated learning, mental health treatment and even the use of robots as companions, she said.
+
+Future work might focus on nonverbal expression between robot and humans, said Roth, now a Ph.D. student at the University of Maryland. Fang suggests that more needs to be learned about how different types of machines -- say, a humanoid robot as compared to a computer box -- might invoke different responses in humans.
+
+In addition to Roth, Fang and Doryab, the research team included Manuela Veloso(M.Veloso@Popplton.ac.uk), professor of computer science; Samantha Reig(S.Reig@Popplton.ac.uk), a Ph.D. student in the HCII; Umang Bhatt (U.Bhatt@Poppleton.ac.uk), who recently completed a joint bachelor's-master's degree program in electrical and computer engineering; Jonathan Shulgach (J.Shulgach@Popplton.ac.uk), a master's student in biomedical engineering; and Tamara Amin (T.Amin@Popplton.ac.uk), who recently finished her master's degree in civil and environmental engineering."
+
+
+The are many other thing you can do with regexes. You can find things that are anchored to the satrt or end of a line. with ^ for the start or $ for the end. You can sepcify or using | try
+
+^Lead|The 
+
+or
+
+humans|praised$
+
+
+One of the most useful things is to put things inside square brackets so [0-9] will find all numbers, but to find all numbers longer than 1 digit you need to add a plus at the end [0-9]+try it with the text
+
+Likewise we can use [a-z]+ to find all lowercase words or more strictly strings with lowercase letters. to add uppercase we could do [A-Za-z]+ and add numbers in with [A-Za-z0-9]+
+
+Quantifiers are also important the * is like a wildcard and can match zero or more characters. + is another quantifier we have already met. ? mathces something zero or one times.
+
+welcome?
+
+would match welcome or welcom
+
+There are also many character classes which help shorten a regex 
+
+\d matches numbers in the same way as [0-9]
+
+\w matches any word character like [a-zA-Z], add a + to get full words.
+
+These are very powerful things for doing searches.
+
+We can use them within R and the stringr pacakge makes you make lots of use of them within tidyverse packages. This stringr cheat sheet contains help on how to use its regular expressions.
+
+https://github.com/rstudio/cheatsheets/blob/master/strings.pdf
+
+There are many good tutorials on the web that can take you through the many other things you can do with regular expressions. It is worth spending a bit of time getting to know this as it is very useful in text manipulation.
+
+Import the dataset headlines, this is a file containing a single vector of headlines from UK based news outlets between the end of 2014 and start of 2015. To import that file I had to use readr package function read_csv() rather than read.csv(). As with most text it is full of unexpected characters as it is scraped from the web and there ias not much control over it.
+
+Look at the stringr documentation and try and use the 
+
+str_detect to find some words in the headlines
+
+```{r}
+cubas <- str_detect(headlines$title, "Cuba")
+# cubas # you can uncomment this to see what the raw output is like but it is a lengthy vector so comment it again
+sum(cubas)
+
+someCountries <- str_detect(headlines$title, "Cuba|Ireland|Portugal")
+# someCountries # you can uncomment this to see what the raw output is like but it is a lengthy vector so comment it again
+sum(someCountries)
+```
+
+str_match to return matched patterns
+
+```{r}
+cubas <- str_match(headlines$title, "Cuba")
+# cubas # you can uncomment this to see what the raw output is like but it is a lengthy vector so comment it again
+
+someCountries <- str_match(headlines$title, "Cuba|Ireland|Portugal")
+someCountries # you can uncomment this to see what the raw output is like but it is a lengthy vector so comment it again
+```
+str_subset to return matched lines
+
+```{r}
+cubas <- str_subset(headlines$title, "Cuba")
+cubas
+
+someCountries <- str_subset(headlines$title, "Cuba|Ireland|Portugal")
+someCountries
+```
+
+str_replace 
+
+```{r}
+pancakes <- str_replace_all(headlines$title, "Cameron", "Pancake")
+head(pancakes, 15)
+
+pancakes2 <- str_subset(pancakes, "Pancake")
+pancakes2
+```
+
+We might be interested in how many headlines had numbers in them.
+
+```{r}
+numbers <- str_subset(headlines$title, "[0-9]+")
+head(numbers)
+length(numbers)
+```
+
+We also might be interested in how many headlines had quotes in them and what they were. Here becasue the " used by the programs character is a special character we have to use an escape character to get it to work. instaed of using " we use \" to tell the computer to treat it as a character quote and not as the start of something in R
+
+```{r}
+quotes <- str_subset(headlines$title, "\"[a-zA-z\"]")
+head(quotes)
+length(quotes)
+```
+
+
+PLay around with finding some interesting things in the headlines data

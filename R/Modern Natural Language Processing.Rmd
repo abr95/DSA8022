@@ -1,0 +1,301 @@
+---
+title: "NLP3"
+author: "Gary McKeown"
+date: "13/01/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+In this document we will use RStudio's capabilities with Python to set up some neural natural language processing models using Transformer models taken from the Hugging Face AI community.
+
+The first step in this process is to create a Python virtual environment that we can work from. RStudio can be used to select an environment to work with from the ones that may be installed on your computer. This can be done in the Preferences dialogue box under the Python option. However Hugging Face recommends that we use a virtual Python environment in these NLP projects. 
+
+The reticulate R package helps us do this, it provides an interface between R and Python and allows us to use Python within an R environment. The reticulate package is developed and maintained by the core RStudio team and therefore has good integration with RStudio. We need to load it into R.
+
+```{r installreticulate}
+if(! "reticulate" %in% installed.packages()){
+         install.packages(reticulate, dependencies = TRUE)
+  } else {
+      print("Already Installed")
+  }
+require(reticulate)
+```
+
+Once we have reticulate installed we can use its functions. Outside of R we can check what version of Python is being used by your computer using the Sys.which() base R function. 
+
+```{r pythonSystem}
+Sys.which("python")
+```
+
+If you would like to change this to a different version of python you can use the use_python() function from the reticulate package.
+
+```{r}
+#reticulate::use_python("/usr/local/bin/python")
+```
+
+We can check further information about the version of Python using the py_config() command.
+
+```{r}
+reticulate::py_config()
+```
+
+The Hugging Face community recommends using a virtual environment for working with its models, therefore our first step will be to enable this.
+
+# Create a Virtual Environment in MacOSX and Linux
+In the environment pane click on the files tab and then the more drop down menu. Select the option "Open New Terminal Here" this will change the console pane to a terminal open in the projects working directory provided that you have not moved out of it. 
+
+Type
+
+```{bash}
+ls -a 
+```
+
+to list all the files in the environment.
+
+If you have installed Anaconda type:
+
+```{bash}
+conda create --prefix ./envs python=3.9 numpy matplotlib pandas 
+# tensorflow transformers datasets we still need to install these modules. 
+```
+
+Then type:
+
+```{bash}
+conda activate ./envs
+which python
+```
+
+There is debate about mixing conda installs and pip installs of python. The Anaconda documentation says that it can be done but many wise Stackexchange folks say not to do it. Anaconda is a multiplatform system seeking to allow Python and R to work together much as we see in RStudio, however Anaconda as the name suggests has its roots in Python, where RStudio obviously has its roots in R. I suspect if you keep the conda environment solely to python you can get away with pip installs. We need to install three more packages and I found it difficult to get these to install using the conda install method. So I have resorted to pip. But this is a warning that there may be problems introduced if the environment is to get more complex. 
+
+```{bash}
+pip install tensorflow
+pip install transformers
+pip install datasets
+```
+
+As a final step we can create a permanent file that will tell RStudio where to find Python when we open the project. Open a text file and type or copy
+
+Sys.setenv(RETICULATE_PYTHON="./envs/bin/python")
+
+Into the text file and then save the file as 
+
+.Rprofile
+
+That should be things set up in the manner in which Hugging Face like them to be.
+
+Now we need to import a few Python libraries.
+```{python}
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import tensorflow as tf
+import transformers
+import datasets
+```
+
+Now that we have imported our modules we need to get a few things in place before we can make our new Transformer model. Currently there are many pre-trained models that we can can use as a base on which we later train our model the most famous of these are the BERT models developed at Google. Bert stands for Bidirectional Encoder Representations from Transformers, when these models were first proposed they were a big improvement on the LSTM (Long Short Term Memory - once again borrowing from human cognition theory) models that were dominant at the time. They added a few innovative concepts, the most important of these was the idea of attention. This allowed more exploration of the context surrounding a given word or token and allowed the model to look for context in both directions which is what the bidirectional part of the name means. The attention innovation allowed certain words in the current context to have greater emphasis or to be considered more important to the context than other words--the model could pay more "attention" to the more relevant words. In some ways this actually took these models back a step towards more bag of words kind of thinking as position information was not explicit within the models and they could look in both directions. They needed a way to put this information back in to the models while retaining the ability to highlight important words in the current context. A second innovation that overcame this difficulty--although perhaps not in a way that human reading would do so--was to encode word position explicitly through a kind of positional encoding hack; a hack that used sine and cosine waves to create a vector that would allow word or token positions to be added to the model. This makes the positional coding available to the model as information that can be incorporated as it learns. The third main innovation was multi-head attention which allowed more than one use of the attention mechanism to be used, eight attention heads were used in the original model.
+
+These Transformer models moved away from the classic workflow that had been used previously where the whole model would be trained into something more like finding a pre-trained base model and then adapting it to your current use case, so much of the computational work is already done when you do natural language processing with these models. In a practical sense the way we work with Transformers is to use one of these pre-trained models that have already been trained on a large subset of text. For instance the original BERT model was trained on the BooksCorpus (800M words) and English Wikipedia (2,500M words). Once we have selected a pre-trained corpus then we can fine tune the corpus to do what we want it to do. The process is essentially to choose a transformer model to use as the base pre-trained model, get a dataset suitable for the task you are looking for--here we will use a sentiment dataset with positive and negative labels. Tokenise the text and get it into a form with tokenised text and labels. Then feed this into the model to create our fine tuned model. We can then use that model to classify new text which is done using the same procedure of tokenising the new text and then feeding it into the model and getting it to predict the labels. 
+
+# Getting some data from Hugging Face
+We first need some data. Hugging Face provide a large repository of useful datasets that can be used for lots of machine learning tasks. There are other options such as spaCy that you may wish to investigate too. We will download the imdb dataset from Hugging Face, the IMDB data set is a classic dataset used in sentiment analysis. It was created by Andrew L. Maas who collected together many movie reviews from the Internet Movie Database (IMDB) there are 50000 reviews that are labelled either positive or negative and these are used for training and testing sets for many sentiment analysis based models. As these reviews are labelled as positive and negative it is an opinion polarity form of sentiment analysis.
+
+We load in the the dataset in python using the load_dataset function from the datasets library from Hugging Face. This library does not contain the datasets, it contains one line codes to download them. It also contains pre-processing methods that can be used to work with these datasets.
+
+```{python}
+from datasets import load_dataset
+
+imdb_dataset = load_dataset("imdb")
+```
+
+We can find out a bit about the dataset
+```{python}
+type(imdb_dataset)
+imdb_dataset.shape
+imdb_dataset.num_columns
+imdb_dataset.num_rows
+imdb_dataset.column_names
+```
+
+
+# Tokenising the data for BERT
+
+The next step is to tokenise our chosen dataset. One of the big issues that remain with natural language processing in its current form is that we have to get our text into a shape that can be used by these pre-trained models. They each expect the text to come in a very precise format with special tokens added to the text that inform the model of the start and end of sentences for example. Currently as we are going to use a BERT model we need to do this pre-processing of our textual IMDB data to get it into shape for use with BERT models. BERT models like their data in a very specific way. They get turned into tokens that have integer labels and there are a few special tokens that need to be used to delimit the boundaries of the sentences. All sentences start with a special token [CLS] and end with another special token [SEP] the is also a token [UNK] for when word is unknown and a [PAD] token that fills out the empty space at the end of sentences--this is needed as we need to have sentences all the same length to keep our matrix square, so essentially this is a trick that aids computation. The integer labels are given to the tokens that come from the original training set, all of the 800M words from BooksCorpus and the 2,500M words from the English Wikipedia are analysed and given an integer label. Obviously, there are many words that repeat so there are not 3,000M individual tokens. The special token [UNK] arises if in our new textual data that we are using to fine tune the model we have some new words that are not in the original corpus, then we replace those with the [UNK] token. For example, the original BERT model was trained sometime before the the paper came out in 2018, therefore it could not have had the now common word COVID in its integer labelled set of tokens.
+
+Luckily for us even though the job of getting the data prepared for use with one of these pre-trained models is laborious, the kind people that make these models available also make tokenisers available to help us. In Hugging Faces' world there are a range of autotokenizers to choose from to do this job for us". We add the AutoTokenizer from Hugging Face's transformers library, in a similar way to how we extracted our imdb from their datasets library. Hugging Face have made a very usable library for getting models and tokenisers called transformers. We use the Auto class function AutoTokenizer with the from_pretrained method and pass it the name of the pretrained model we are interested in using, there are many many models available to use. Here we are selecting the "bert-base-cased" model.
+
+```{python}
+from transformers import AutoTokenizer
+
+tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
+```
+
+Here we have created an object called tokenizer that contains our tokeniser associated with the model "bert-base-cased" 
+
+The next step is to do the actual tokenisation. we can use a test sentence to get a look at what the tokeniser is doing.
+
+```{python}
+testSentence = tokenizer("This is a test sentence containing ten words, and punctuation!")
+type(testSentence)
+print(testSentence)
+```
+
+We can see that this has created an object of type "transformers.tokenization_utils_base.BatchEncoding" that contains a dictionary with three vectors with seventeen items which correspond to the tokens in the sentence. We have ten words and two pieces of punctuation.
+
+```{python}
+tokenizer.decode(testSentence["input_ids"])
+tokenizer.decode(testSentence["input_ids"][5])
+list(testSentence)
+```
+
+We can then get back from our integer tokens to the words that we want. In the first version we get the full sentence back with the special tokens at the start and end of the sentence which let the Transformer know where the tokens stop and start. We can get an individual token back by extracting the number from the list and decoding it. We can see that the word sentence has a token integer of 2774. We can also see that there are three components in the dictionary output 'input_ids', 'token_type_ids', 'attention_mask'. We will come to these in a moment.
+
+It is a simple matter to do this to a batch of sentences which is getting us closer to our goal.
+
+```{python}
+batch_sentences = ["DSA8022 is a module from the Data Analytics Masters", "called Frontiers in Analytics", "with Behaviour Analytics"]
+batch_integer_tokens = tokenizer(batch_sentences)
+print(batch_integer_tokens)
+```
+
+There are three sentences here but we can see that the first is longer than the two that follow. This is problematic for our Transformer which wants a regular matrix as input so we need to add padding to our shorter sentences to ensure that the matrix is the right shape for the computation. We can do that by adding the padding=True, truncation=True arguments to our tokenizer function. 
+
+```{python}
+batch_integer_tokens = tokenizer(batch_sentences, padding=True, truncation=True)
+print(batch_integer_tokens)
+```
+
+We can see here that extra zeros have been added as integers to the input_ids. We also see what the attention_mask is too, it lets the Transformer know which ids are padding and which are real. 1 for real and 0 for padding. The token_type_ids section is useful if we want to code pairs of sentences as some natural language processing demand, the first sentence would be coded as zeros and the second as ones. There is a maximum length of sentence that the models can accept and truncation=True makes sure that this is not exceeded. In bert-base-cased the maximum length is 512.
+
+We can now move on to tokenise much bigger datasets. We have our imdb dataset that we already loaded from the Hugging Face datasets library. The datasets class has a method called map that can really speed up the batch processing of the large dataset, it still takes time and a progress bar is provided in the console, but it makes our life easy. This is certainly the case due to the fact that we are using a dataset that comes from Hugging Face and a tokeniser from the same place, this helps to make things seamless. With your own data this would be more complex. (see the documentation here https://huggingface.co/docs/datasets/about_map_batch.html)
+
+```{python}
+type(imdb_dataset)
+```
+
+```{python}
+def tokenize_function(examples):
+  return tokenizer(examples["text"], padding="max_length", truncation=True)
+```
+
+```{python}
+tokenized_datasets = imdb_dataset.map(tokenize_function, batched=True)
+```
+
+The models can take a very long time to train. So it is useful to work with smaller models until you are sure you have got things correct. We can create smaller datasets by selecting a sub sample of the data from the larger dataset. I have set the seed of the sample to the year to ensure that the sampling stays the same for reproducibility.
+
+```{python}
+sample_train_dataset = tokenized_datasets["train"].shuffle(seed=2022).select(range(1000)) 
+sample_eval_dataset = tokenized_datasets["test"].shuffle(seed=2022).select(range(1000)) 
+# to use the full datasets use these versions.
+full_train_dataset = tokenized_datasets["train"]
+full_eval_dataset = tokenized_datasets["test"]
+
+type(sample_train_dataset)
+sample_train_dataset.features
+print(sample_train_dataset[0])
+```
+
+We can see here that from using the sample_train_dataset.features command that we have five elements in our data: attention_mask, input_ids, label, text, and token_type_ids. The text gives us the exact text that was used in the review and we can see if we look at the first sampled review using  print(sample_train_dataset[0]) that we have a review of the 1996 film Darkman III: Die Darkman Die  that is not so flattering to the movie. A quick Google search finds the original movie review here: https://www.imdb.com/title/tt0116033/reviews, you will have to scroll down. The review also has the label 0 corresponding to negative. We can see in the imdb page that there is a star rating associated with the reviews, this review gives 1/10. The star rating might offer a different route to assessing the emotional content of the movies in a more continuous way rather than the straight classification of polarity.
+
+We can move this dataset into R if you are more familiar with that. 
+
+```{r}
+rDataset <- py$sample_train_dataset[0:999] # remember python is zero indexed and R is not.
+summary(rDataset)
+str(rDataset, max=1)
+print("This is the Positive review of the Second film")
+rDataset$text[2]
+```
+
+We now have a list of the data in R we could do a number fo things with this. We cannot directly convert it into a dataframe because the dimensions are wrong. Each of the attention_mask, input_ids, token_type_ids have 512 items, text is a character vector with the actual words and label has a single integer 0 for negative and 1 for positive. I do this to show you how you can move data from python to R quite easily, however our datasets here are a bit unforgiving due to their size and shape so some wrangling would be needed to make them into nice dataframes. The reticulate website has a table showing the various type conversions that are the default ways to move data from python to R (https://rstudio.github.io/reticulate/)
+
+# Getting a BERT model to use
+
+Hugging Face's transformers library provides us with ways to import the various pre-trained NLP models that we require from the library. Here we are going with the tensorflow version, but they also make PyTorch versions available too, and once you have fine-tuned a pre-trained model in tensorflow you can change it into a PyTorch version and vice versa.
+
+We use the TFAutoModelForSequenceClassification AutoModel class to create our model from a pre-trained model, in this case our pretrained model is bert-base-cased, but there are many others that can be used.
+
+```{python}
+from transformers import TFAutoModelForSequenceClassification
+
+model = TFAutoModelForSequenceClassification.from_pretrained("bert-base-cased", num_labels=2)
+
+type(model)
+```
+
+We need to adjust our datasets from the version that we downloaded to one that we can give to them to the model in the form that is expected. This means we tell them that the format required is "tensorflow", and that we remove the text column from the data as we have all the information we need as integer tokens in the input_ids. We do this for both sets of data for our training set and  evaluation set.
+
+```{python}
+tf_train_dataset = sample_train_dataset.remove_columns(["text"]).with_format("tensorflow")
+tf_eval_dataset = sample_eval_dataset.remove_columns(["text"]).with_format("tensorflow")
+```
+
+The final data preparation step is some more wrangling to get things in shape for the model
+
+```{python}
+train_features = {x: tf_train_dataset[x] for x in tokenizer.model_input_names}
+train_tf_dataset = tf.data.Dataset.from_tensor_slices((train_features, tf_train_dataset["label"]))
+train_tf_dataset = train_tf_dataset.shuffle(len(tf_train_dataset)).batch(8)
+
+eval_features = {x: tf_eval_dataset[x] for x in tokenizer.model_input_names}
+eval_tf_dataset = tf.data.Dataset.from_tensor_slices((eval_features, tf_eval_dataset["label"]))
+eval_tf_dataset = eval_tf_dataset.batch(8)
+```
+
+# Setting up the BERT model
+
+The next step is where the model gets fine-tuned. The typical Keras tensorflow way of doing this is to compile the model and then to fit the model. This is the bit that takes a lot of time and part of the reason we are using the sample dataset.
+
+```{python}
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(learning_rate=5e-5),
+    loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+    metrics=tf.metrics.SparseCategoricalAccuracy(),
+)
+
+model.fit(train_tf_dataset, validation_data=eval_tf_dataset, epochs=3)
+```
+
+
+Once we have the model created then we can add some new reviews as a new data and classify them on the basis of our model. Now we need to be careful here as we have used a sample dataset, therefore it is unlikely that we will get good classification, garbage in, garbage out. Therefore we need to devote some more time to this if we are to get a good model.
+
+```{python}
+pred_sentences = ["Dune was great, I loved Bladerunner 2049, but the director has surpassed himself this time",
+                  "What is there to say about this movie, too long, dry and lacking in any sort of vision",
+                  "It was a very bad movie"]
+```
+
+We need to tokenise the new reviews in the same way that we did with the original datasets so that the model can treat it in the same way.
+
+```{python}
+tf_batch = tokenizer(pred_sentences, max_length=128, padding=True, truncation=True, return_tensors='tf')
+tf_outputs = model(tf_batch)
+tf_predictions = tf.nn.softmax(tf_outputs[0], axis=-1)
+labels = ['Negative','Positive']
+label = tf.argmax(tf_predictions, axis=1)
+label = label.numpy()
+for i in range(len(pred_sentences)):
+    print(pred_sentences[i], ": \n", labels[label[i]])
+    
+type(model)
+
+model.save("model")
+
+model.save_pretrained() 
+```
+
+
+
+
+
+
+
+
+
+

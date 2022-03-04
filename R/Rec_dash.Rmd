@@ -1,0 +1,400 @@
+---
+title: "Rec_dash"
+author: "GaryMcKeown"
+date: "11/02/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exercise 1
+
+Open the Rec_dash_videos.R file.
+The videos part has not got all of the correct videos.  Only the male videos seem to be appearing correctly. The Youtube URLs for the female participant videos are given below
+Can you update the Program so that the correct videos are in the correct places.
+
+Joy_F https://www.youtube.com/embed/HXH6vRkppmw
+
+Surprise_F https://www.youtube.com/embed/r5ta5RgeQx4
+
+Fear_F https://www.youtube.com/embed/_eeXh4cx3ig
+
+Disgust_F https://www.youtube.com/embed/SlN6fBjV3No
+
+Curiosity_F https://www.youtube.com/embed/fBSIzT_O5SU
+
+Boredom_F https://www.youtube.com/embed/HkxXnrMYQk0
+
+## Exercise 2
+
+Open the file: "Rec_dash_manual_input.R"
+
+Insert the following code for the manual input.
+
+In the UI part, where the comments say manual input ui insert (remember a new comma is needed):
+```{r eval=FALSE}
+                        tabItem(tabName = "manual_input",
+                                box(title = "Data Selection & Processing", width = 3,
+                                    fileInput("data_upload", "Upload data File",accept = c("text/csv","text/comma-separated-values,text/plain",".csv")),
+                                    selectInput("inSelectJoy", "Select Joy values", choices = "Pending Upload"),
+                                    selectInput("inSelectSurprise", "Select Surprise values", choices = "Pending Upload"),
+                                    selectInput("inSelectAnger", "Select Anger values", choices = "Pending Upload"),
+                                    selectInput("inSelectSadness", "Select Sadness values", choices = "Pending Upload"),
+                                    selectInput("inSelectDisgust", "Select Disgust values", choices = "Pending Upload"),
+                                    selectInput("inSelectFear", "Select Fear values", choices = "Pending Upload"),
+                                    actionButton("process", "Process file")
+                                ),
+                                tabBox(title = "", width=9,
+                                       tabPanel(title=tagList("Raw Timelines"),
+                                                verbatimTextOutput("test"),
+                                                plotOutput("rawplot")
+                                       ),
+                                       tabPanel(title=tagList("Confidence & Sensitivity"),
+                                                plotOutput("indicatorplot")
+                                       )
+                                       
+                                )
+                                
+                        )
+```                     
+
+Write some high-level pseudo-code (or plain language if you prefer) to explain what this piece of code is doing.                         
+
+In the server part paste this code":
+
+```{r eval=FALSE}
+  data_raw <- reactive({
+    inFile <- input$data_upload
+    if (is.null(inFile)) return(NULL)
+    data <- fread(inFile$datapath)
+    return(data)
+  })
+  #
+  observe({
+    updateSelectInput(session, "inSelectJoy", choices = names(data_raw()))
+  })
+  observe({
+    updateSelectInput(session, "inSelectSurprise", choices = names(data_raw()))
+  })
+  observe({
+    updateSelectInput(session, "inSelectDisgust", choices = names(data_raw()))
+  })
+  observe({
+    updateSelectInput(session, "inSelectFear", choices = names(data_raw()))
+  })
+  observe({
+    updateSelectInput(session, "inSelectSadness", choices = names(data_raw()))
+  })
+  observe({
+    updateSelectInput(session, "inSelectAnger", choices = names(data_raw()))
+  })
+  data_df <- eventReactive(input$process, {
+    data <- data_raw() %>%
+      subset(., select=which(!duplicated(names(.)))) %>%
+      dplyr::select(input$inSelectJoy,input$inSelectFear,input$inSelectDisgust,input$inSelectSadness,input$inSelectAnger,input$inSelectSurprise)
+    if (length(colnames(data))!=6){
+      return("column selection incorrect")
+    } 
+    colnames(data) <- c("joy","fear","disgust","sadness","anger","surprise")
+    data %>%
+      dplyr::mutate_all(as.numeric) %>%
+      dplyr::mutate(time = 1:nrow(data)) %>%
+      tidyr::gather(key = emotion,value = emotion_score,c("joy","fear","disgust","sadness","anger","surprise")) %>%
+      dplyr::mutate(emotion_score = scales::rescale(emotion_score,to = c(0, 1)))
+  })
+  
+  output$test <- renderPrint({
+    print(str(data_df()))
+  })
+  output$rawplot <- renderPlot({
+    ggplot(data = data_df(), aes(time, emotion_score))+
+      geom_line(aes(colour= emotion),size=1)+
+      geom_hline(aes(yintercept=input$threshold), colour="#990000", linetype="dashed") +
+      ylim(0, 1) + 
+      theme(text = element_text(size=13)) +
+      labs(x = "Video Frames",
+           y = "Rescaled Raw Data") +
+      guides(colour=guide_legend(title="Emotions"))
+  })
+  output$indicatorplot <- renderPlot({
+    confidence_raw_df <- data_df() %>%
+      dplyr::mutate(emotion_score = ifelse(emotion_score < input$threshold,0,emotion_score)) %>%
+      tidyr::spread(key = emotion, value = emotion_score)%>%
+      dplyr::select(target_labels) %>%
+      dplyr::summarise_all(funs(sum))
+    
+    confidence_df <- confidence_raw_df%>%
+      dplyr::select_if(is.numeric) %>%
+      dplyr::mutate(sum = rowSums(.)) %>%
+      dplyr::mutate_all(funs((. / sum)*100)) %>%
+      dplyr::mutate_all(funs(replace(., is.na(.), 0))) %>%
+      dplyr::select(-sum) %>%
+      tidyr::gather(key = emotion, value = emotion_score,target_labels) %>%
+      dplyr::mutate(indicator = "confidence")
+    
+    sensitivity_raw_df <- data_df() %>%
+      dplyr::mutate(emotion_score = ifelse(emotion_score < input$threshold,0,1)) %>%
+      tidyr::spread(key = emotion, value = emotion_score)%>%
+      dplyr::select(-time) %>%
+      dplyr::mutate(nframe = 1) %>%
+      dplyr::summarise_all(funs(sum))
+    
+    sensitivity_df <- sensitivity_raw_df%>%
+      dplyr::select_if(is.numeric) %>%
+      dplyr::mutate_all(funs((. / nframe)*100)) %>%
+      dplyr::mutate_all(funs(replace(., is.na(.), 0)))%>%
+      dplyr::select(-nframe) %>%
+      dplyr::gather(key = emotion, value = emotion_score,target_labels) %>%
+      dplyr::mutate(indicator = "sensitivity")
+    
+    df_indicator <- rbind(confidence_df,sensitivity_df)
+    df_indicator$emotion_score <- round(df_indicator$emotion_score,2)
+    
+    ggplot(df_indicator, aes(x=emotion, y=emotion_score, fill = indicator, label = emotion_score)) +
+      geom_bar(stat="identity", position="dodge") +
+      theme(text = element_text(size=14),
+            axis.text.x = element_text(angle = 90, hjust = 1)) +
+      labs(x = "Emotions",
+           y = "Percentage Indicator") +
+      ylim(0, 100) +
+      geom_text(position = position_dodge(0.9),angle = 90,hjust = -0)
+  })
+``` 
+                          
+Write some high-level pseudo-code to explain what this piece of code is doing. 
+
+## Exercise 4
+
+Now load the full Rec_dash_full.R version of the app. It has a manual input tab. Using the Browse tab load either the Affectiva_digustF.csv or Affectiva_digustM.csv file. You will need to align the pull down labels with their appropriate emotion label. The click the Process file button. Have a look at the line graph and and see how each line predicts the type of emotions. Have a look at the video and see if you can relate the line graph to the facial behaviour.
+
+## Exercise 5
+
+Open the Rec_dash_gauges1.R file 
+
+In the next step we wish to put in the gauges for Confidence and Sensitivity. These take the overall data provided by the command:
+```{r eval=FALSE}
+  all_raw <- isolate(
+    readr::read_csv(here::here("./data/all_raw.csv"))
+  )
+```
+
+at the start of the server. Note that the readr function creates a tibble rather than a dataframe. This is the Tidyverse version of a data.frame/data.table that works in a way that is compatible with Tidyverse code. This data is used by the four:
+
+```{r eval=FALSE}
+output$.... <- renderGauge({ })
+```
+
+functions which do some data wrangling and statistics on the all_raw data to produce the Confidence and Sensitivity outputs.
+The first gauge displays the data for the df_confidence_mean_target data table.
+The first gauge displays the data for the df_confidence_mean_nontarget data table.
+The first gauge displays the data for the df_sensitivity_mean_target data table.
+The first gauge displays the data for the df_sensitivity_mean_nontarget data table.
+
+Although the first gauge function is complete there are many gaps in the following functions. There are many similarities between these functions in the data that they bring together. Can you work to fill in the gaps. Most of these should be straightforward if you work through and duplicate the blocks of code. the last main block of code in df_confidence_mean_nontarget is almost identical to that in the df_confidence_mean_target, but being a non-target there is a negation that is required.
+
+In high level terms how could the code be improved?
+
+## Exercise 6 
+
+In this exercise will will calculate the data for the Accuracy gauges and the central plot. As you can see in the text four reactive functions have to be created. The first of these reactive functions responds to a new input from the threshold slider. This then sets of a cascade of reactivity that links and calls each of the other three functions.
+
+These reactive functions make calculations based on the same all_raw data that comes from the all_raw function at the start of the server:
+
+```{r eval=FALSE}
+all_raw <- isolate(
+    all_raw(here::here("./data/all_raw.csv"))
+)
+```
+
+The function stubs for the four reactive functions are:
+
+```{r eval=FALSE}
+  all_threshold <- reactive({
+  })
+  all_accuracy <- reactive({
+  })
+  system_summary <- reactive({
+  })
+  all_summary <- reactive({
+  })
+```
+
+The code for the first function is the most involved consisting of four parts and culminating in an enhanced all_raw tibble. 
+
+The code stub for the first function can be replaced with this code:
+```{r eval=FALSE}
+  all_threshold <- reactive({
+    all_raw <- all_raw %>% #create new emotion column recoded according threshold value
+    mutate(anger_c = ifelse(anger > input$threshold,1,0)) %>%
+    mutate(disgust_c = ifelse(disgust > input$threshold,1,0)) %>%
+    mutate(fear_c = ifelse(fear > input$threshold,1,0)) %>%
+    mutate(joy_c = ifelse(joy > input$threshold,1,0)) %>%
+    mutate(sadness_c = ifelse(sadness > input$threshold,1,0)) %>%
+    mutate(surprise_c = ifelse(surprise > input$threshold,1,0))
+    ##########################################################################
+    all_Target <- all_raw %>% # copy original data frame, replace value by O for non target emotions and calculate rowmax
+      select(anger_c,disgust_c,fear_c,joy_c,sadness_c,surprise_c,video_emotion) 
+      print(all_Target)
+    all_Target$anger_c[all_Target$video_emotion != "anger"] <- 0
+    all_Target$disgust_c[all_Target$video_emotion != "disgust"] <- 0
+    all_Target$fear_c[all_Target$video_emotion != "fear"] <- 0
+    all_Target$joy_c[all_Target$video_emotion != "joy"] <- 0
+    all_Target$sadness_c[all_Target$video_emotion != "sadness"] <- 0
+    all_Target$surprise_c[all_Target$video_emotion != "surprise"] <- 0
+    all_Target <- all_Target %>%
+      select(-video_emotion)
+    all_Target$Target <- apply(all_Target, 1, max)
+    ##########################################################################
+    all_NTarget <- all_raw %>% # copy original data frame, replace value by O for target emotions and calculate rowmax
+      select(anger_c,disgust_c,fear_c,joy_c,sadness_c,surprise_c,video_emotion)
+    all_NTarget$anger_c[all_NTarget$video_emotion == "anger"] <- 0
+    all_NTarget$disgust_c[all_NTarget$video_emotion == "disgust"] <- 0
+    all_NTarget$fear_c[all_NTarget$video_emotion == "fear"] <- 0
+    all_NTarget$joy_c[all_NTarget$video_emotion == "joy"] <- 0
+    all_NTarget$sadness_c[all_NTarget$video_emotion == "sadness"] <- 0
+    all_NTarget$surprise_c[all_NTarget$video_emotion == "surprise"] <- 0
+    all_NTarget <- all_NTarget %>%
+      select(-video_emotion)
+    all_NTarget$NTarget <- apply(all_NTarget, 1, max)
+    ##########################################################################
+    all_raw$Target <- all_Target$Target # merge target and non target wih original values
+    all_raw$NTarget <- all_NTarget$NTarget
+    rm(all_NTarget,all_Target)
+    all_raw$TruePositive <- ifelse(all_raw$Target == 1 & all_raw$NTarget == 0,1,0)#when only the target label is recognised
+    all_raw$TrueNegative <- ifelse(all_raw$Target == 0 & all_raw$NTarget == 0,1,0)#when no label at all is recognised
+    all_raw$FalsePositive <- ifelse(all_raw$Target == 1 & all_raw$NTarget == 1,1,0)#when nontarget label are recognised
+    all_raw$FalseNegative <- ifelse(all_raw$Target == 0 & all_raw$NTarget == 1,1,0)#when only the non target label is recognised
+    all_raw
+  })
+```
+
+  The first section of this code creates new columns in the all_raw tibble. If the input threshold changes or on the initial run of the app it calculates a binary variable created by taking the relevant emotion name and adding an ending of _c -- if the raw probability data is above the threshold defined by input~$threshold then the data gets a tibble gets a 1 if not it gets a 0. 
+
+```{r eval=FALSE} 
+    all_raw <- all_raw %>% #create new emotion column recoded according threshold value
+    mutate(anger_c = ifelse(anger > input$threshold,1,0)) %>%
+    mutate(disgust_c = ifelse(disgust > input$threshold,1,0)) %>%
+    mutate(fear_c = ifelse(fear > input$threshold,1,0)) %>%
+    mutate(joy_c = ifelse(joy > input$threshold,1,0)) %>%
+    mutate(sadness_c = ifelse(sadness > input$threshold,1,0)) %>%
+    mutate(surprise_c = ifelse(surprise > input$threshold,1,0))
+    ##########################################################################
+```
+
+  The next two blocks of code are for the creation of two new variables that will be added to the all_raw tibble. These are Target and NTarget. They operate in a similar way, the first block deals with the Target variable. It selects the key variables and places a zero in anywhere that is not a key variable this finishes by creating the all_Target$Target vector:
+ 
+```{r eval=FALSE} 
+      all_Target <- all_raw %>% # copy original data frame, replace value by O for non target emotions and calculate rowmax
+      select(anger_c,disgust_c,fear_c,joy_c,sadness_c,surprise_c,video_emotion)
+    all_Target$anger_c[all_Target$video_emotion != "anger"] <- 0
+    all_Target$disgust_c[all_Target$video_emotion != "disgust"] <- 0
+    all_Target$fear_c[all_Target$video_emotion != "fear"] <- 0
+    all_Target$joy_c[all_Target$video_emotion != "joy"] <- 0
+    all_Target$sadness_c[all_Target$video_emotion != "sadness"] <- 0
+    all_Target$surprise_c[all_Target$video_emotion != "surprise"] <- 0
+    all_Target <- all_Target %>%
+      select(-video_emotion)
+    all_Target$Target <- apply(all_Target, 1, max)
+    ##########################################################################
+    
+    The next block does the same thing except with the all_NTarget$NTarget vector as the goal:
+    
+        all_NTarget <- all_raw %>% # copy original data frame, replace value by O for target emotions and calculate rowmax
+      select(anger_c,disgust_c,fear_c,joy_c,sadness_c,surprise_c,video_emotion)
+    all_NTarget$anger_c[all_NTarget$video_emotion == "anger"] <- 0
+    all_NTarget$disgust_c[all_NTarget$video_emotion == "disgust"] <- 0
+    all_NTarget$fear_c[all_NTarget$video_emotion == "fear"] <- 0
+    all_NTarget$joy_c[all_NTarget$video_emotion == "joy"] <- 0
+    all_NTarget$sadness_c[all_NTarget$video_emotion == "sadness"] <- 0
+    all_NTarget$surprise_c[all_NTarget$video_emotion == "surprise"] <- 0
+    all_NTarget <- all_NTarget %>%
+      select(-video_emotion)
+    all_NTarget$NTarget <- apply(all_NTarget, 1, max)
+    ##########################################################################
+    
+The final block in this section adds tidies things up to produce the enhanced all_raw tibble. It first adds the final Target and NTarget variables. It then creates TruePositive, TrueNegative, FalsePositive, and FalseNegative variables. See the comments for the logic here.
+
+    all_raw$Target <- all_Target$Target # merge target and non target wih original values
+    all_raw$NTarget <- all_NTarget$NTarget
+    rm(all_NTarget,all_Target)
+    all_raw$TruePositive <- ifelse(all_raw$Target == 1 & all_raw$NTarget == 0,1,0)#when only the target label is recognised
+    all_raw$TrueNegative <- ifelse(all_raw$Target == 0 & all_raw$NTarget == 0,1,0)#when no label at all is recognised
+    all_raw$FalsePositive <- ifelse(all_raw$Target == 1 & all_raw$NTarget == 1,1,0)#when nontarget label are recognised
+    all_raw$FalseNegative <- ifelse(all_raw$Target == 0 & all_raw$NTarget == 1,1,0)#when only the non target label is recognised
+    all_raw
+```
+
+That block finishes the first and largest of the reactive functions.
+
+The second reactive function is:
+
+```{r eval=FALSE}
+    all_accuracy <- reactive({
+    all_threshold() %>%
+      dplyr::filter(video_emotion %in% c("joy","fear","disgust","sadness","anger","surprise")) %>%
+      dplyr::select(system,video,FalseNegative, FalsePositive, TruePositive, TrueNegative) %>%
+      tidyr::gather(key = indicator,value = indicator_score,FalseNegative, FalsePositive, TruePositive, TrueNegative) %>%
+      dplyr::mutate(indicator = ordered(indicator, levels = c("TruePositive", "TrueNegative", "FalsePositive","FalseNegative")))
+  })
+```
+
+It calls the all_threshold() reactive function which provides it with the appropriate enhanced all_raw tibble. This tibble then gets manipulated by a series of dplyr and tidyr commands. This sorts the data in a form that is called by the next two functions.
+
+The third block of code creates the system_summary() reactive function. This is used to return the necessary filtered data to provide tot he accuracy gauges:
+
+```{r eval=FALSE}
+  system_summary <- reactive({
+    print(all_accuracy())
+    all_accuracy() %>%
+      dplyr::filter(system == input$system) %>%
+      dplyr::group_by(indicator) %>%
+      dplyr::summarise(mean=mean(indicator_score), sd=sd(indicator_score))
+  })
+```
+
+
+The fourth block creates all_summary() reactive function. This filters the data in an appropriate way to provide the data required for the central ggplot.
+```{r eval=FALSE}
+  all_summary <- reactive({
+    all_accuracy() %>%
+      dplyr::filter(system == input$system) %>%
+      dplyr::group_by(indicator,video) %>%
+      dplyr::summarise(mean=mean(indicator_score), sd=sd(indicator_score))
+  })
+```
+
+## Exercise 7
+
+This exercise will provide the server side code to allow the output to the accuracy gauges the data for the Accuracy gauges and the central plot. Under the Accuracy Gauges comment place the following code filling in the gaps in the code where appropriate:
+
+```{r eval=FALSE}
+  output$TP <- renderGauge({
+  gauge(round(as.numeric(system_summary()[which(system_summary()$indicator=="TruePositive"),"mean"]) * 100, digits = 2), min = 0, max = 100, symbol = '%',gaugeSectors(danger = c(0, 50), warning = c(50, 90), success = c(90, 100)))
+  })
+  output$TN <- renderGauge({
+    gauge(round(as.numeric(system_summary()[which(system_summary()$indicator==_____________),"mean"]) * 100, digits = 2), min = 0, max = 100, symbol = '%',gaugeSectors(danger = c(0, 50), warning = c(50, 90), success = c(90, 100)))
+  })
+  output$FP <- renderGauge({
+    gauge(round(as.numeric(system_summary()[which(system_summary()$indicator==_____________),"mean"]) * 100, digits = 2), min = 0, max = 100, symbol = '%',gaugeSectors(danger = c(90, 100), warning = c(50, 89), success = c(0, 50)))
+  })
+  output$FN <- renderGauge({
+    gauge(round(as.numeric(system_summary()[which(system_summary()$indicator==_____________),"mean"]) * 100, digits = 2), min = 0, max = 100, symbol = '%',gaugeSectors(danger = c(90, 100), warning = c(50, 89), success = c(0, 50)))
+  })
+```
+
+ Under the Central Plot comment place the following ggplot2 and Renderplot code:
+ 
+```{r eval=FALSE}
+   output$accuracy_summary <- renderPlot({
+    ggplot(all_summary(), aes(x=mean*100, y=video)) +
+      geom_segment(aes(yend=video), xend=0, colour="grey50") +
+      geom_point(size=3, aes(colour=video))+
+      facet_grid(indicator ~ ., scales="free_y", space="free_y")+ 
+      theme(legend.position="none",text = element_text(size=16)) +
+      labs(x = "Indicator Proportion") +
+      scale_x_continuous(breaks = seq(0, 100, by = 25), labels = paste(seq(0,100, by = 25) , "%", sep = ""))
+  })
+```
+  

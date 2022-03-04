@@ -1,0 +1,155 @@
+---
+title: "SentimentAnalysis"
+author: "GaryMcKeown"
+date: "07/02/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+require(dplyr)
+require(tibble)
+require(ggplot2)
+library(tidytext)
+library(plotly)
+```
+
+## Exercise 1:
+The Combined dataset contains a lingusitic analysis conducted by the LIWC program. LIWC has six emotion 
+dimensions: affect, posemo, negemo, anxiety, anger and sad.
+The Combined dataset contains headlines from news outlets between the end of 2014 and start of 2015.
+The headlines are contained in the variable title and the news outlets are in the variable newsSource.
+Work through the commands below and use the headline data in the Combined dataset to create ggplots of the LIWC decisions on the Sentiment.
+
+Import the datasets using RStudio
+
+```{r}
+by_newsSource_pos <- Combined %>% 
+  group_by(newsSource) %>%
+  summarise(meanPos = mean(posemo))
+
+ggplot(by_newsSource_pos, aes(x=newsSource, y=meanPos))+
+  geom_bar(stat = "identity", aes(fill = factor(newsSource)))
+
+by_newsSource_neg <- Combined %>% 
+  group_by(newsSource) %>%
+  summarise(meanNeg = mean(negemo))
+
+ggplot(by_newsSource_neg, aes(x=newsSource, y=meanNeg))+
+  geom_bar(stat = "identity", aes(fill = factor(newsSource)))
+```
+
+Create the new variable polarity by subtracting negemo from posemo.
+```{r}
+Combined <- Combined %>%
+  mutate(polarity = posemo - negemo)
+
+by_newsSource_pol <- Combined %>% 
+  group_by(newsSource) %>%
+  summarise(meanPol = mean(polarity))
+
+ggplot(by_newsSource_pol, aes(x=newsSource, y=meanPol))+
+  geom_bar(stat = "identity", aes(fill = factor(newsSource)))
+```
+
+## Exercise 2 
+
+Do the same thing for the other emotional variables in Combined: affect, anxiety, anger and sad
+
+
+## Exercise 3 
+
+Put a straight line for the the LIWC text norms in the plot found in Table 3 of the LIWC2015 Development Manual
+
+
+## Exercise 4 
+
+Move on to look at an inner_join with the Warriner lexicon. This is a collection of emotionally relevant words that has scores for Valence, Arousal and Dominance.
+
+You will have to laod the Combined_Tidy and Ratings_WarrinerVAD csv files
+
+```{r}
+Combined_Tidy <- Combined_Tidy %>%
+  mutate(title=as.character(title))
+
+Combined_Tidy <- as_tibble(Combined_Tidy)
+
+headline_words <- Combined_Tidy %>% 
+  unnest_tokens(word, title)
+
+headline_Warriner <- headline_words %>%
+  inner_join(Ratings_WarrinerVAD, by = "word")
+```
+
+### Valence
+```{r}
+by_newsSource_val <- headline_Warriner %>% 
+  group_by(newsSource) %>%
+  summarise(meanVal = mean(Valence))
+
+ggplot(by_newsSource_val, aes(x=newsSource, y=meanVal))+
+  geom_bar(stat = "identity", aes(fill = factor(newsSource)))
+```
+
+### Arousal
+```{r}
+
+by_newsSource_aro <- headline_Warriner %>% 
+  group_by(newsSource) %>%
+  summarise(meanAro = mean(Arousal))
+
+ggplot(by_newsSource_aro, aes(x=newsSource, y=meanAro))+
+  geom_bar(stat = "identity", aes(fill = factor(newsSource)))
+```
+
+### Dominance -- Also known as control and potency
+
+```{r}
+by_newsSource_dom <- headline_Warriner %>% 
+  group_by(newsSource) %>%
+  summarise(meanDom = mean(Dominance))
+
+ggplot(by_newsSource_dom, aes(x=newsSource, y=meanDom))+
+  geom_bar(stat = "identity", aes(fill = factor(newsSource)))
+```
+
+Can you remove the stop words from the headlines and try this again.
+
+#Exercise 5 
+
+Combine the variables to create a place for each of them in the 3D VAD space
+
+```{r}
+meanVAD <- by_newsSource_val %>%
+  left_join(by_newsSource_aro, by="newsSource") %>%
+  left_join(by_newsSource_dom, by="newsSource")
+
+plot_ly(meanVAD, x = ~meanVal, y = ~meanAro, z = ~meanDom, color = ~newsSource) %>%
+  add_markers() %>%
+  layout(scene = list(xaxis = list(title = 'Valence'),
+                      yaxis = list(title = 'Arousal'),
+                      zaxis = list(title = 'Dominance')))
+
+scale(meanVAD[,2:4], center = TRUE, scale = TRUE)
+```
+
+Perhaps they are better taken to centering around zero, we can use the scale() function to create centralized z-scores of the data moving them to a central origin.
+
+```{r}
+scaledMeanVAD <- meanVAD %>%
+  mutate(meanVal = scale(meanVal, center = TRUE, scale = TRUE),
+         meanAro = scale(meanAro, center = TRUE, scale = TRUE),
+         meanDom = scale(meanDom, center = TRUE, scale = TRUE))
+
+plot_ly(scaledMeanVAD, x = ~meanVal, y = ~meanAro, z = ~meanDom, color = ~newsSource) %>%
+  add_markers() %>%
+  layout(scene = list(xaxis = list(title = 'Valence'),
+                      yaxis = list(title = 'Arousal'),
+                      zaxis = list(title = 'Dominance')))
+```
+
+
+#Exercise 6 
+
+Can you apply the scale() function to the individual diemsions and recreate the ggplots in Exercise 4
