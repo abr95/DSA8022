@@ -99,10 +99,20 @@ Look at the stringr documentation and try and use the
 str_detect to find some words in the headlines
 
 ```{r}
+headlines <- read.csv("headlines.csv")
+names(headlines) <- c("title")
+
+```
+
+
+```{r}
 cubas <- str_detect(headlines$title, "Cuba")
-# cubas # you can uncomment this to see what the raw output is like but it is a lengthy vector so comment it again
+#cubas # you can uncomment this to see what the raw output is like but it is a lengthy vector so comment it again
 sum(cubas)
 
+```
+
+```{r}
 someCountries <- str_detect(headlines$title, "Cuba|Ireland|Portugal")
 # someCountries # you can uncomment this to see what the raw output is like but it is a lengthy vector so comment it again
 sum(someCountries)
@@ -112,10 +122,14 @@ str_match to return matched patterns
 
 ```{r}
 cubas <- str_match(headlines$title, "Cuba")
-# cubas # you can uncomment this to see what the raw output is like but it is a lengthy vector so comment it again
+#cubas # you can uncomment this to see what the raw output is like but it is a lengthy vector so comment it again
+```
+
+
+```{r}
 
 someCountries <- str_match(headlines$title, "Cuba|Ireland|Portugal")
-someCountries # you can uncomment this to see what the raw output is like but it is a lengthy vector so comment it again
+#someCountries # you can uncomment this to see what the raw output is like but it is a lengthy vector so comment it again
 ```
 str_subset to return matched lines
 
