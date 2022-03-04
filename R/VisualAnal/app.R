@@ -1,7 +1,6 @@
 library(tidyverse)
 library(shiny)
 library(shinythemes)
-library(thematic)
 library(DT)
 
 movies <- read_csv("./data/movies.csv")
