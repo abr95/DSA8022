@@ -1,0 +1,6 @@
+
+
+movies <- read_csv("./data/movies.csv")
+
+movies_codebook <- read_csv("http://s3.amazonaws.com/assets.datacamp.com/production/course_4850/datasets/movies_codebook.csv")
+
