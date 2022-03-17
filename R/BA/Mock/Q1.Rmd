@@ -1,0 +1,81 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(irr)
+```
+
+Load Data
+
+```{r}
+df <- read.csv("ExampleData1.csv")
+df
+```
+
+Data in tidy format - convert to table
+
+```{r}
+df2 <- df %>% spread(Rater, Expressivity)
+df2
+```
+All raters rate all subjects - fully crossed.
+
+Continuous data - not categorical - not obviously interval based.
+
+```{r}
+# drop subject column
+df3 <- df2 %>% select(-Subject)
+df3
+```
+Simple per-rater summary stats.
+
+```{r}
+summary(df3)
+```
+
+Because there are no missing values and the data is continuous - ICC is preferred although K's alpha can be calculated.
+
+Range of rates values is different (especially rater 4).
+
+for ICC:
+- two-way (fully crossed)
+- prefer consistency over agreement as the rater ranges are different and we do not have enough information to draw further conclusions
+- average
+- mixed (assuming raters are fixed - not really enough information to determine this)
+
+```{r}
+icc(df3, model = "twoway", type = "consistency", unit = "average")
+```
+
+ICC(C,k) = 0.445
+
+```{r}
+#kripp.alpha(t(as.matrix(df3)), method = "interval")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,65 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+```
+
+```{r}
+library(tidyverse)
+```
+
+Load the tweets
+
+```{r}
+tweets <- read.csv("TweetCorpusPolarity.csv")
+tweets
+```
+Load the Ratings
+
+```{r}
+ratings <- read.csv("Ratings_WarrinerVAD.csv")
+ratings
+```
+
+Split the tweets into words
+
+
+```{r}
+df <- unnest_tokens(tweets, "word", "Tweet")
+df
+```
+
+Inner join with ratings
+
+```{r}
+joined <- inner_join(df, ratings, by = "word")
+joined
+```
+
+Plot type requested is ambiguous - assuming faceted average for each dimension?
+
+```{r}
+reduced_df <- joined %>%
+group_by(Polarity) %>%
+summarise(
+  valence = mean(Valence),
+  arousal = mean(Arousal),
+  dominance = mean(Dominance)
+)
+reduced_df
+```
+```{r}
+tidy_df <- reduced_df %>% gather("Dimension", "Mean", 2:4)
+tidy_df
+```
+
+```{r}
+ggplot(data = tidy_df, aes(x = Dimension, y = Mean)) +
+geom_col(aes(fill = Dimension)) +
+facet_wrap(~ Polarity)
+```
+
+
+

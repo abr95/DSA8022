@@ -1,0 +1,44 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+```
+
+```{r}
+library(tidyverse)
+library(mgcv)
+```
+
+Load the data
+
+```{r}
+df <- read.csv("Q2.Data.csv")
+df
+```
+
+Linear Model
+
+```{r}
+model1 <- lm(data ~ time, data = df)
+model1
+summary(model1)
+```
+
+Generalised Linear Model
+
+```{r}
+model2 <- gam(data ~ s(time), data = df)
+model2
+summary(model2)
+```
+
+
+
+
+
+
+
+
+

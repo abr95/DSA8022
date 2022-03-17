@@ -1,0 +1,76 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(dygraphs)
+library(xts)
+```
+
+Code from Physio_dash.R
+
+```{r}
+#   data_BR_sim <- eventReactive(input$simulate_data,{
+#     time <- seq(t_start, t_start+(input$duration*60000), by = 1500)
+#     Breathing.Rate <- as.numeric(arima.sim(model = list(ar = input$autocorrelation) , n = length(time), mean = 4, sd = 5))
+#     data.frame(time,Breathing.Rate)
+#   })
+```
+
+Adapted code
+
+```{r}
+simulated_data <- function(
+  t_start,
+  duration,
+  autocorrelation
+) {
+  time <- seq(t_start, t_start+(duration*60000), by = 1500)
+  data <- as.numeric(arima.sim(model = list(ar = autocorrelation), n = length(time), mean = 4, sd = 5))
+  data <- abs(data)
+  data <- data.frame(time, data)
+  return(data)
+}
+```
+
+Generate some data
+
+```{r}
+df <- simulated_data(0, 1, 0.2)
+write.csv(df, "Q2.Data.csv")
+df
+```
+
+More code from Physio_dash.R
+
+```{r}
+#   output$plot_BR <- renderDygraph({
+#     BR_xts <- xts(x = data_BR()$value, order.by = data_BR()$time_date) # specific dataframe with time series class
+#     dygraph(BR_xts, main = " ", ylab = "Breathing Rate (rpm)", xlab = "time", group = "biometrics")%>%
+#       dySeries("V1", label = "Breathing Rate (rpm)") %>%
+#       dyRangeSelector(height = 20) %>%
+#       dyOptions(colors = 'blue') %>%
+#       dyUnzoom() %>%
+#       dyLegend(width = 300)
+#   })
+```
+
+Adapted code to display graph
+
+```{r}
+graph <- dygraph(df, main = " ", ylab = "Breathing Rate (rpm)", xlab = "time", group = "biometrics") %>%
+dySeries("data", label = "Breathing Rate (rpm)") %>%
+dyRangeSelector(height = 20) %>%
+dyOptions(colors = 'blue') %>%
+dyUnzoom() %>%
+dyLegend(width = 300)
+
+graph
+```
+
+Negative breathing rates are not valid but were produced by the code!!
+The code is adapted to fix this.
+
+
