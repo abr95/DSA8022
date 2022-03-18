@@ -1,0 +1,23 @@
+# Attributes for students.csv dataset:
+
+# categorical attributes
+1 subject - course that a student takes ("mat" - mathematics, "por" - Portuguese)
+2 school - student's school (binary: "GP" - Gabriel Pereira or "MS" - Mousinho da Silveira)
+3 sex - student's sex (binary: "F" - female or "M" - male)
+4 famsize - family size (binary: "LE3" - less or equal to 3 or "GT3" - greater than 3)
+5 Medu - mother's education (numeric: 0 - none,  1 - primary education (4th grade), 2 – 5th to 9th grade, 3 – secondary education or 4 – higher education)
+6 Fedu - father's education (numeric: 0 - none,  1 - primary education (4th grade), 2 – 5th to 9th grade, 3 – secondary education or 4 – higher education)
+
+# ordinal attributes
+7 age - student's age (numeric: from 15 to 22)
+8 studytime - weekly study time (numeric: 1 - <2 hours, 2 - 2 to 5 hours, 3 - 5 to 10 hours, or 4 - >10 hours)
+9 freetime - free time after school (numeric: from 1 - very low to 5 - very high)
+10 goout - going out with friends (numeric: from 1 - very low to 5 - very high)
+11 health - current health status (numeric: from 1 - very bad to 5 - very good)
+12 absences - number of school absences (numeric: from 0 to 93)
+
+# these grades are related with the course subject, Math or Portuguese:
+13 G1 - first period grade (numeric: from 0 to 20)
+14 G2 - second period grade (numeric: from 0 to 20)
+15 G3 - final grade (numeric: from 0 to 20, output target)
+
